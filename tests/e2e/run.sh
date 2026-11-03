@@ -5,7 +5,10 @@ cd "$(dirname "$0")"; mkdir -p shots; [ -d node_modules ] || npm i --silent
 docker run --rm --network host --user "$(id -u)" -e HOME=/tmp -v "$PWD":/e2e -w /e2e mcr.microsoft.com/playwright:v1.48.2-jammy node run.mjs /e2e/shots
 code=$?
 export PGPASSWORD=quayzen_dev_owner
+for k in $(psql -h localhost -p 5434 -U quayzen_owner quayzen -Atc "SELECT \"storageKey\" FROM document_versions v JOIN documents d ON d.id=v.\"documentId\" WHERE d.title LIKE 'E2E%'"); do rm -f "../../apps/web/data/files/$k"; done
 psql -h localhost -p 5434 -U quayzen_owner quayzen -Atq <<'SQL'
+DELETE FROM documents WHERE title LIKE 'E2E%';
+DELETE FROM audit_logs WHERE "entityType"='documents' AND (summary LIKE '%E2E%' OR summary LIKE 'Downloaded restricted file%');
 DELETE FROM records WHERE data->>'title' = 'E2E obligation' OR data->>'description' = 'E2E import';
 DELETE FROM return_snapshots WHERE "returnId" IN (SELECT id FROM annual_returns WHERE title LIKE 'E2E%');
 DELETE FROM annual_returns WHERE title LIKE 'E2E%';

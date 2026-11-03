@@ -9,3 +9,4 @@ apps/web/src/generated/
 __pycache__/
 .ruff_cache/
 /services/ai/data/
+/apps/web/data/

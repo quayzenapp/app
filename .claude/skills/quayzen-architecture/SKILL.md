@@ -28,7 +28,7 @@ Browser -> Next.js (apps/web: UI, BFF, RBAC, tenancy) -> Postgres db `quayzen` (
 - Tenant = `Organization`. Users join through `Membership` (user, org, role).
 - The active org is in the `qz_org` cookie and is **always re-validated against Membership on each request**. Never trust a client-supplied org id.
 - `getTenantContext()` in `src/lib/tenant.ts` is the only way to get the org, role and permissions.
-- Tenant tables (`records`, `audit_logs`, `annual_returns`, `return_snapshots`) use Postgres RLS with `FORCE`. Access them only through `withTenant(orgId, tx => ...)`, which sets `app.org_id` for the transaction, using the non-owner `quayzen_app` role. RLS is the second line of defence, so still filter by `organizationId` in code.
+- Tenant tables (`records`, `audit_logs`, `annual_returns`, `return_snapshots`, `documents`, `document_versions`) use Postgres RLS with `FORCE`. Access them only through `withTenant(orgId, tx => ...)`, which sets `app.org_id` for the transaction, using the non-owner `quayzen_app` role. RLS is the second line of defence, so still filter by `organizationId` in code.
 - `platformDb` is for identity and admin tables only (users, organisations, memberships, roles, forms).
 
 ## RBAC: built into the app
@@ -37,6 +37,9 @@ Browser -> Next.js (apps/web: UI, BFF, RBAC, tenancy) -> Postgres db `quayzen` (
 - Sensitive fields: `stripSensitive()` on every read, and `mergeSensitive()` on every write so hidden values are kept, never blanked.
 - Platform admin (`User.isPlatformAdmin`) manages everything. An org admin needs `settings: approve` and is limited to their own org.
 - Write an audit log entry for every create, update, delete and permission change.
+
+## Files
+Go through `src/lib/storage.ts`; keys are generated, never built from file names. Downloads only through `documents/[id]/versions/[versionId]`, which checks organization, role and restricted access. Every document query uses `visibleWhere(ctx)`. Validate uploads with `checkFile()`. Server actions accept up to 55 MB (`next.config.ts`), so each action must apply its own limit.
 
 ## Forms are data
 `FormDefinition` rows (org override first, then the global row) drive lists, forms, validation and sensitive handling. Records are stored in `records.data` JSONB. Do not add a table per register unless a calculation really requires it.

@@ -19,7 +19,7 @@ export const SECTIONS: Section[] = [
   { key: "returns", label: "Annual Returns", module: "returns", forms: ["fin_entries", "housing"], href: "/returns" },
   { key: "obligations", label: "Licences and Obligations", module: "obligations", forms: ["licences", "obligations"] },
   { key: "visas", label: "Visas and Permits", module: "visas", forms: ["visas"] },
-  { key: "documents", label: "Documents", module: "documents" },
+  { key: "documents", label: "Documents", module: "documents", href: "/documents" },
   { key: "reports", label: "Reports", module: "reports" },
   { key: "library", label: ASSISTANT_NAME, module: null, href: "/ask", icon: "quayza" },
   { key: "howto", label: "How It Works", module: null },

@@ -45,6 +45,9 @@ Levels: none < read < write < approve. Six template roles: admin, compliance, hr
 ## Annual return (`src/lib/ar/engine.ts`)
 A reviewed verbatim port of `ar.js`; keep it comparable with the source and test changes with `pnpm test:returns`, whose figures are worked out by hand. The preparer can't approve their own return. Approval stores an unchangeable snapshot, and the PDF uses that snapshot. The system never ticks declarations, signs, dates or submits. A PDF that fails its read-back isn't delivered.
 
+## Documents
+UBO, passport and visa categories are always restricted, visible only to roles with `id` or `ubo` access. Versions are never changed or removed. Unlike the artifact, Word and Excel files are allowed, because its limit came from the artifact's file store.
+
 ## Dashboard figures (`pages1.js`)
 - Open requests: status not Submitted or Closed.
 - Obligations not met: status not Met or Not applicable.

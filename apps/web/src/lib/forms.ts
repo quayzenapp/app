@@ -132,6 +132,7 @@ export async function loadRefOptions(tx: Tx, organizationId: string, forms: Form
 }
 
 export const fmtDate = (s: unknown) => (s ? new Date(String(s)).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }) : "");
+export const fmtDateTime = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Colombo", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }).format(d).replace(",", "");
 /** Deadlines follow the date in Sri Lanka, not the server's UTC date. */
 export const todayISO = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Colombo" }).format(new Date());
 export const daysUntil = (s: string) => Math.round((new Date(s).getTime() - new Date(todayISO()).getTime()) / 864e5);

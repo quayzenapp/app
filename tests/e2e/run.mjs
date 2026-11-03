@@ -1,6 +1,7 @@
 import { chromium } from "playwright";
 import ExcelJS from "exceljs";
 import { PDFDocument } from "pdf-lib";
+import { createHash, randomBytes } from "node:crypto";
 const S = process.argv[2], BASE = "http://localhost:3000"; let fails = 0;
 const check = (n, ok, extra = "") => { console.log(`${ok ? "PASS" : "FAIL"}  ${n} ${ok ? "" : extra}`); if (!ok) fails++; };
 const browser = await chromium.launch();
@@ -120,6 +121,73 @@ t = await up(await sheet([H, [new Date("2026-01-05"), "Revenue", "E2E import", 1
 check("a good file imports", t.includes("1 record(s) imported"), t);
 check("imported figures are calculated", /E2E import/.test(await text(admin.page)));
 res = await admin.ctx.request.get(BASE + "/r/fin_entries/export"); check("register exports to Excel", res.status() === 200 && (await res.body()).subarray(0, 2).toString() === "PK");
+
+/* ---------- documents: real files, versions, restricted access ---------- */
+const hash = (b) => createHash("sha256").update(b).digest("hex");
+const bigPdf = Buffer.concat([Buffer.from("%PDF-1.7\n"), randomBytes(2 * 1024 * 1024)]);
+const bannerText = async (p) => { await p.waitForFunction((n) => document.querySelector(".card form .banner"), null, { timeout: 60000 }); return p.locator(".card form .banner").first().innerText(); };
+const pick = (p, name, mimeType, buffer) => p.setInputFiles('input[type="file"]', { name, mimeType, buffer });
+await go(admin.page, "/documents"); t = await text(admin.page);
+check("documents list shows seeded documents", t.includes("AP licence certificate (demo)") && t.includes("Signed UBO declaration (demo)"));
+await admin.page.screenshot({ path: `${S}/documents.png` });
+await go(admin.page, "/documents/new");
+await admin.page.fill("#d_t", "E2E passport copy"); await admin.page.selectOption("#d_c", "Passports and IDs"); await admin.page.selectOption("#d_a", "Normal");
+await admin.page.click('button:has-text("Save")'); await admin.page.waitForURL(/\/documents\/(?!new)[^/]+$/, { timeout: 60000 });
+const restrictedUrl = admin.page.url().replace(BASE, "");
+check("a passport category is always restricted, whatever is chosen", (await text(admin.page)).includes("Restricted"));
+await pick(admin.page, "passport.pdf", "application/pdf", bigPdf); await admin.page.click('button:has-text("Upload the file")');
+t = await bannerText(admin.page); check("a 2 MB file uploads (over the 1 MB default limit)", t.includes("Version 1 uploaded"), t);
+await go(admin.page, restrictedUrl);
+const v1 = await admin.page.locator('a:has-text("passport.pdf")').first().getAttribute("href");
+res = await admin.ctx.request.get(BASE + v1);
+check("the download matches the upload byte for byte", res.status() === 200 && hash(await res.body()) === hash(bigPdf), String(res.status()));
+const h = res.headers();
+check("files always download, and can't run on our site", h["content-disposition"].startsWith("attachment") && h["x-content-type-options"] === "nosniff" && (h["content-security-policy"] ?? "").includes("sandbox"));
+await pick(admin.page, "passport-v2.pdf", "application/pdf", Buffer.from("%PDF-1.7 version two")); await admin.page.fill('input[name="note"]', "Renewed"); await admin.page.click('button:has-text("Upload a new version")');
+t = await bannerText(admin.page); check("a new version is added", t.includes("Version 2 uploaded"), t);
+await go(admin.page, restrictedUrl); t = await text(admin.page);
+await admin.page.screenshot({ path: `${S}/document.png` });
+check("both versions are kept, newest first", t.indexOf("v2") < t.indexOf("v1") && t.includes("passport.pdf") && t.includes("Renewed"));
+check("the earlier version still downloads", hash(await (await admin.ctx.request.get(BASE + v1)).body()) === hash(bigPdf));
+await pick(admin.page, "invoice.pdf", "application/pdf", Buffer.from("MZ this is a program")); await admin.page.click('button:has-text("Upload a new version")');
+t = await bannerText(admin.page); check("a program renamed to .pdf is refused", t.includes("contents don't match"), t);
+await go(admin.page, restrictedUrl); await pick(admin.page, "page.html", "text/html", Buffer.from("<script>alert(1)</script>")); await admin.page.click('button:has-text("Upload a new version")');
+t = await bannerText(admin.page); check("a web page is refused", t.includes("can't be stored"), t);
+await go(admin.page, restrictedUrl); await pick(admin.page, "huge.pdf", "application/pdf", Buffer.concat([Buffer.from("%PDF-"), Buffer.alloc(21 * 1024 * 1024)])); await admin.page.click('button:has-text("Upload a new version")');
+t = await bannerText(admin.page); check("a file over 20 MB is refused", t.includes("up to 20 MB"), t);
+await go(admin.page, "/r/licences"); await go(admin.page, await admin.page.locator("tbody a").first().getAttribute("href"));
+t = await text(admin.page); check("a record shows its linked documents", t.includes("AP licence certificate (demo)"));
+await admin.page.click('a:has-text("Add a document")'); await admin.page.waitForSelector("#d_t");
+await admin.page.fill("#d_t", "E2E linked doc"); await admin.page.selectOption("#d_c", "AP and BSI approvals"); await admin.page.fill("#d_e", new Date(Date.now() + 20 * 864e5).toISOString().slice(0, 10));
+await admin.page.click('button:has-text("Save")'); await admin.page.waitForURL(/\/documents\/(?!new)[^/]+$/, { timeout: 60000 });
+check("a document can be linked from its record", (await text(admin.page)).includes("Licence or approval: Authorised Person licence"));
+await go(admin.page, "/dashboard"); check("expiring documents appear on the dashboard", (await text(admin.page)).includes("E2E linked doc"));
+admin.page.once("dialog", (d) => d.accept());
+await go(admin.page, "/documents"); await admin.page.click('a:has-text("E2E linked doc")'); await admin.page.waitForURL(/\/documents\/(?!new)[^/]+$/); await admin.page.click('button:has-text("Archive")'); await admin.page.waitForURL(/\/documents$/, { timeout: 30000 });
+check("archiving hides a document", !(await text(admin.page)).includes("E2E linked doc"));
+
+const finance = await session("finance@demo.test");
+await go(finance.page, "/documents"); t = await text(finance.page);
+check("a role without identity access can't see restricted documents", t.includes("AP licence certificate") && !t.includes("E2E passport copy") && !t.includes("Signed UBO") && t.includes("restricted document(s) are hidden"));
+res = await finance.ctx.request.get(BASE + restrictedUrl); check("... nor open one by its address", res.status() === 404, String(res.status()));
+res = await finance.ctx.request.get(BASE + v1); check("... nor download its file by its address", res.status() === 404, String(res.status()));
+await go(finance.page, "/documents/new");
+check("... nor pick a restricted category", (await finance.page.locator('#d_c option:has-text("Passports")').count()) === 0 && (await finance.page.locator('#d_a option:has-text("Restricted")').count()) === 0);
+const other = await session("admin@harbourline.test");
+res = await other.ctx.request.get(BASE + restrictedUrl); check("another organization's admin can't open it", res.status() === 404, String(res.status()));
+res = await other.ctx.request.get(BASE + v1); check("... nor download its file", res.status() === 404, String(res.status()));
+{ const anon = await browser.newContext(); const r = await anon.request.get(BASE + v1, { maxRedirects: 0 }); check("signed-out visitors get no file", r.status() !== 200, String(r.status())); await anon.close(); }
+
+await go(admin.page, "/admin/ai/documents");
+await admin.page.fill("#d_title", "E2E large AI doc"); await admin.page.setInputFiles("#d_file", { name: "large.txt", mimeType: "text/plain", buffer: Buffer.from("The Port City licence renewal notice applies to E2E zebra harbour rules. ".repeat(16000)) });
+await admin.page.click('button:has-text("Upload")'); await admin.page.waitForSelector(".card form .banner", { timeout: 60000 });
+t = await admin.page.locator(".card form .banner").first().innerText(); check("an AI document over 1 MB uploads", t.includes("Uploaded"), t);
+let aiStatus = ""; for (let i = 0; i < 30 && !["ready", "failed"].includes(aiStatus); i++) { await admin.page.waitForTimeout(5000); await go(admin.page, "/admin/ai/documents"); aiStatus = (await admin.page.locator('tr:has-text("E2E large AI doc") .badge').last().innerText().catch(() => "")).trim(); }
+check("it is processed", aiStatus === "ready", aiStatus);
+admin.page.once("dialog", (d) => d.accept());
+await admin.page.locator('tr:has-text("E2E large AI doc") button:has-text("Delete")').click();
+await admin.page.waitForFunction(() => !document.body.innerText.includes("E2E large AI doc"), null, { timeout: 30000 });
+check("delete asks first, then removes it", true);
 
 const adviser = await session("adviser@demo.test");
 await go(adviser.page, "/r/employees"); check("adviser blocked from workforce", adviser.page.url().includes("forbidden"));

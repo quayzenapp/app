@@ -2,6 +2,8 @@ import "dotenv/config";
 import { db, withTenant } from "../src/lib/db";
 import { buildRecord, getForm, getLookups, stripSensitive } from "../src/lib/forms";
 import { can } from "../src/lib/rbac";
+import { checkFile } from "../src/lib/documents";
+import { readStored } from "../src/lib/storage";
 
 /** Tenant and RBAC checks against the seeded demo data, connected as the restricted app role. */
 let failed = 0;
@@ -28,6 +30,24 @@ async function main() {
   await withTenant(demo.id, (tx) => tx.auditLog.create({ data: { organizationId: demo.id, action: "test", entityType: "isolation" } }));
   try { await withTenant(demo.id, (tx) => tx.auditLog.deleteMany({ where: { entityType: "isolation" } })); } catch { auditLocked = true; }
   check("audit log cannot be deleted by the app", auditLocked);
+
+  const hdoc = await withTenant(harbour.id, (tx) => tx.document.findFirstOrThrow());
+  check("no tenant set: raw read of documents returns nothing", (await db.document.count()) === 0 && (await db.documentVersion.count()) === 0);
+  check("fetching another tenant's document by id returns nothing", (await withTenant(demo.id, (tx) => tx.document.findUnique({ where: { id: hdoc.id } }))) === null);
+  check("archiving another tenant's document changes nothing", (await withTenant(demo.id, (tx) => tx.document.updateMany({ where: { id: hdoc.id }, data: { archivedAt: new Date() } }))).count === 0);
+  let vBlocked = false;
+  try { await withTenant(demo.id, (tx) => tx.documentVersion.create({ data: { organizationId: harbour.id, documentId: hdoc.id, versionNo: 99, filename: "x", size: 1, mime: "text/plain", sha256: "x", storageKey: "x" } })); } catch { vBlocked = true; }
+  check("adding a file version to another tenant is rejected", vBlocked);
+  let vLocked = false;
+  try { await withTenant(demo.id, (tx) => tx.documentVersion.updateMany({ data: { filename: "tampered" } })); } catch { vLocked = true; }
+  check("stored file versions can't be altered by the app", vLocked);
+  const cf = (n: string, b: number[]) => checkFile(n, new Uint8Array(b));
+  check("a program renamed to .pdf is refused", "error" in cf("evil.pdf", [0x4d, 0x5a, 0x90, 0]));
+  check("web pages and SVGs are refused", "error" in cf("x.html", [60]) && "error" in cf("x.svg", [60]));
+  check("a real PDF signature is accepted, and path parts are dropped from its name", (() => { const r = cf("..\\..\\a.pdf", [0x25, 0x50, 0x44, 0x46, 0x2d]); return "filename" in r && r.filename === "a.pdf"; })());
+  let badKey = false;
+  try { await readStored("../../etc/passwd"); } catch (e) { badKey = (e as Error).message === "Invalid storage key"; }
+  check("storage refuses a path outside its folder", badKey);
 
   const roles = await db.role.findMany({ where: { organizationId: demo.id } });
   const role = (k: string) => roles.find((r) => r.key === k)!;

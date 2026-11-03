@@ -210,3 +210,48 @@ model ReturnSnapshot {
   @@index([organizationId, returnId])
   @@map("return_snapshots")
 }
+
+/// Row level security enforced. Restricted access is enforced on the server for details and files.
+model Document {
+  id             String    @id @default(cuid())
+  organizationId String
+  title          String
+  category       String
+  access         String    @default("Normal")
+  expiryDate     String?
+  notes          String?
+  linkType       String?
+  linkId         String?
+  archivedAt     DateTime?
+  createdById    String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  versions DocumentVersion[]
+
+  @@index([organizationId])
+  @@index([organizationId, linkType, linkId])
+  @@map("documents")
+}
+
+/// Row level security enforced. Append only for the app: earlier versions can't be changed or removed.
+model DocumentVersion {
+  id             String   @id @default(cuid())
+  organizationId String
+  documentId     String
+  document       Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  versionNo      Int
+  filename       String
+  size           Int
+  mime           String
+  sha256         String
+  storageKey     String
+  note           String?
+  uploadedById   String?
+  uploadedByName String?
+  createdAt      DateTime @default(now())
+
+  @@unique([documentId, versionNo])
+  @@index([organizationId])
+  @@map("document_versions")
+}

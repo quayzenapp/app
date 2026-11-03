@@ -1,7 +1,9 @@
 import "dotenv/config";
 import { readFileSync } from "node:fs";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { PDFDocument, StandardFonts } from "pdf-lib";
 import { PrismaClient } from "../src/generated/prisma/client";
+import { saveFile, sha256 } from "../src/lib/storage";
 
 /** Idempotent: global forms, lookups and role templates, plus two clearly marked demo organizations. */
 const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_OWNER_URL! }) });
@@ -136,6 +138,20 @@ async function main() {
       housing: [{ description: "Apartment for expatriate staff (demo)", staff_group: "Non-Sri Lankan", tenure: "Leased", from_date: "2025-01-01" }],
     })) for (const { _review, ...data } of rows) await db.record.create({ data: { organizationId: demo.id, formKey, data, reviewStatus: _review ?? null } });
   }
+
+  if (!(await db.document.count({ where: { organizationId: demo.id } }))) {
+    const pdf = await PDFDocument.create();
+    pdf.addPage([595, 842]).drawText("DEMO - sample document, not a real licence", { x: 50, y: 780, size: 16, font: await pdf.embedFont(StandardFonts.Helvetica) });
+    const bytes = await pdf.save();
+    const licence = await db.record.findFirst({ where: { organizationId: demo.id, formKey: "licences" } });
+    const lic = await db.document.create({ data: { organizationId: demo.id, title: "AP licence certificate (demo)", category: "AP and BSI approvals", expiryDate: d(50), linkType: licence ? "licences" : null, linkId: licence?.id ?? null } });
+    await db.documentVersion.create({ data: { organizationId: demo.id, documentId: lic.id, versionNo: 1, filename: "demo-licence.pdf", size: bytes.length, mime: "application/pdf", sha256: sha256(bytes), storageKey: await saveFile(demo.id, bytes), uploadedByName: "Demo data" } });
+    const ubo = await db.document.create({ data: { organizationId: demo.id, title: "Signed UBO declaration (demo)", category: "UBO declarations", access: "Restricted" } });
+    const b2 = new TextEncoder().encode("DEMO restricted sample: not a real declaration.\n");
+    await db.documentVersion.create({ data: { organizationId: demo.id, documentId: ubo.id, versionNo: 1, filename: "demo-ubo.txt", size: b2.length, mime: "text/plain", sha256: sha256(b2), storageKey: await saveFile(demo.id, b2), uploadedByName: "Demo data" } });
+    await db.document.create({ data: { organizationId: demo.id, title: "Audited financial statements 2025/26 (demo)", category: "Audited financial statements" } });
+  }
+  if (!(await db.document.count({ where: { organizationId: harbour.id } }))) await db.document.create({ data: { organizationId: harbour.id, title: "Harbourline board resolution (demo)", category: "Board resolutions" } });
 
   await seedRecords(harbour.id, {
     obligations: [{ title: "Submit the licence application pack (demo)", obligation_type: "Reporting deadline", basis: "Internal good practice", source_document: "Application process page", deadline: d(21), recurrence: "One-off", status: "In progress", needs_review: "No" }],
