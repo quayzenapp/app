@@ -198,6 +198,13 @@ async function main() {
   }
   if (!(await db.document.count({ where: { organizationId: harbour.id } }))) await db.document.create({ data: { organizationId: harbour.id, title: "Harbourline board resolution (demo)", category: "Board resolutions" } });
 
+  // A demo applicant, part-way through, so the application screens have something to show.
+  if (!(await db.application.count({ where: { organizationId: harbour.id } }))) {
+    await db.organization.update({ where: { id: harbour.id }, data: { stage: "applicant" } });
+    const app = await db.application.create({ data: { organizationId: harbour.id, title: "Harbourline Analytics application (DEMO)", data: { app_type: "Authorised Person only", origin: "Foreign", legal: "Company", p1: { name: "Harbourline Analytics (Private) Limited (DEMO)", address: "DEMO 10 Marina Boulevard, Singapore 018983", country: "Singapore", email: "demo.applicant@example.com" }, q: { reg_no: "DEMO-202612345K", group_sl: "No", regulated: "No" } }, events: [{ at: "2026-11-01 09:00:00", by: "Demo data", status: "Preparing", note: "Started" }] } });
+    await db.applicationPerson.create({ data: { organizationId: harbour.id, applicationId: app.id, data: { kind: "Individual", name: "Helen Tan (DEMO)", roles: ["Shareholder / member / partner / founder", "Director / member of the key management body"], shareholding_pct: 60, nationality: "Singaporean", address: "DEMO address", id_no: "HARBOUR-SECRET-ID" } } });
+  }
+
   await seedRecords(harbour.id, {
     obligations: [{ title: "Submit the licence application pack (demo)", obligation_type: "Reporting deadline", basis: "Internal good practice", source_document: "Application process page", deadline: d(21), recurrence: "One-off", status: "In progress", needs_review: "No" }],
     ubo: [{ full_name: "Helen Tan (DEMO)", nationality: "Singaporean", ownership_pct: 60, passport_number: "HARBOUR-ONLY-P1", declaration_status: "Not prepared" }],

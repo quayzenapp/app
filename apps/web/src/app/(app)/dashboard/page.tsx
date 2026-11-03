@@ -2,6 +2,7 @@ import Link from "next/link";
 import { HeroArt, Pic } from "@/components/theme";
 import { withTenant } from "@/lib/db";
 import { canRestricted, visibleWhere } from "@/lib/documents";
+import { loadLic, toEngineApp } from "@/lib/lic/store";
 import { addDays } from "@/lib/budget-engine";
 import { budgetRow, loadBudgetEngine } from "@/lib/budget-store";
 import { fmtK, fmtNum, pct } from "@/lib/charts";
@@ -34,10 +35,11 @@ export default async function Dashboard() {
   const ctx = await requirePermission("dashboard");
   const today = todayISO();
   const canM = (m: string) => can(ctx, m);
-  const { rows, latest, docs, plan, budget } = await withTenant(ctx.org.id, async (tx) => ({
+  const { rows, latest, docs, plan, budget, app } = await withTenant(ctx.org.id, async (tx) => ({
     rows: await tx.record.findMany({ where: { organizationId: ctx.org.id, archivedAt: null } }),
     latest: canM("returns") ? await tx.annualReturn.findFirst({ where: { organizationId: ctx.org.id }, orderBy: { periodEnd: "desc" } }) : null,
     docs: canM("documents") ? await tx.document.findMany({ where: { ...visibleWhere(ctx), expiryDate: { not: null } } }) : [],
+    app: canM("licensing") ? await (async () => { const r = await tx.application.findFirst({ where: { organizationId: ctx.org.id, status: { notIn: ["Licence issued", "Withdrawn", "Rejected"] } }, orderBy: { createdAt: "desc" } }); if (!r) return null; const R = (await loadLic(tx, ctx)).appReadiness(toEngineApp(r)); return { r, R }; })() : null,
     plan: canM("bplan") ? await (async () => { const eng = createReports(await loadReportStore(tx, ctx), () => canRestricted(ctx)), v = eng.referencePlan(); return v ? { v, years: eng.comparePlan(v) } : null; })() : null,
     budget: canM("budget") ? await (async () => {
       const eng = await loadBudgetEngine(tx, ctx.org.id);
@@ -64,6 +66,7 @@ export default async function Dashboard() {
   return (
     <>
       <div className="hero"><div className="t"><div className="hello">Welcome back</div><h1>{ctx.org.name}</h1><div className="dt">{fmtDate(today)}</div></div><HeroArt /></div>
+      {app && <div className="card hl"><h3>Licence application <span className="badge info">{app.r.status}</span></h3><div className="row"><span className="small">{app.R.steps.filter((s: { missing: unknown[] }) => !s.missing.length).length} of {app.R.steps.length} steps complete · {app.R.docs.ok} of {app.R.docs.total} documents ready</span><Link className="btn sm p" href={`/apply/${app.r.id}`}>Open the application</Link></div></div>}
       <div className="stats">
         {canM("requests") && <Stat value={data("requests").filter((r) => !["Submitted", "Closed"].includes(String(r.status))).length} label="Open Commission requests" section="requests" />}
         {canM("obligations") && <Stat value={data("obligations").filter((o) => !["Met", "Not applicable"].includes(String(o.status))).length} label="Obligations not yet met" section="obligations" />}

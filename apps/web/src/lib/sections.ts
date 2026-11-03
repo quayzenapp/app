@@ -6,7 +6,7 @@ export type Section = { key: string; label: string; module: string | null; forms
 export const SECTIONS: Section[] = [
   { key: "dashboard", label: "Dashboard", module: "dashboard", href: "/dashboard" },
   { key: "company", label: "Company Profile", module: "company", forms: ["people", "ubo"], href: "/company" },
-  { key: "apply", label: "Licence Application", module: "licensing" },
+  { key: "apply", label: "Licence Application", module: "licensing", href: "/apply" },
   { key: "changes", label: "Licence Changes", module: "licensing" },
   { key: "develop", label: "Development Approvals", module: "development" },
   { key: "checklists", label: "Checklists", module: "checklists" },

@@ -313,3 +313,53 @@ model Budget {
   @@index([organizationId])
   @@map("budgets")
 }
+
+/// Row level security enforced. `data` holds the application fields under the artifact's own names (p1, q, p2, p6, tef, prof, decl, checklist, marks).
+model Application {
+  id             String    @id @default(cuid())
+  organizationId String
+  title          String
+  status         String    @default("Preparing")
+  data           Json      @default("{}")
+  events         Json      @default("[]")
+  preparedById   String?
+  updatedById    String?
+  approvedById   String?
+  approvedAt     DateTime?
+  snapshotId     String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([organizationId])
+  @@map("applications")
+}
+
+/// Row level security enforced. Restricted fields are stripped by role before they reach a page.
+model ApplicationPerson {
+  id             String   @id @default(cuid())
+  organizationId String
+  applicationId  String
+  data           Json     @default("{}")
+  updatedById    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([organizationId, applicationId])
+  @@map("application_people")
+}
+
+/// Row level security enforced. The fixed copy made on approval: the app can't change or delete it.
+model ApplicationSnapshot {
+  id             String   @id @default(cuid())
+  organizationId String
+  applicationId  String
+  versionNo      Int
+  body           Json
+  hash           String
+  gaps           Int      @default(0)
+  approvedById   String
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, applicationId])
+  @@map("application_snapshots")
+}

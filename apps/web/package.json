@@ -11,7 +11,8 @@
     "db:migrate": "prisma migrate deploy",
     "test:returns": "tsx scripts/test-annual-return.ts",
     "test:reports": "tsx scripts/test-reports.ts",
-    "test:plan-budget": "tsx scripts/test-plan-budget.ts"
+    "test:plan-budget": "tsx scripts/test-plan-budget.ts",
+    "test:lic": "tsx scripts/test-lic.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.1",

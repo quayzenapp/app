@@ -17,6 +17,7 @@ Last updated: 2026-11-03
 - Business plan: versions, entry form and Excel template import, second-person check and lock with fingerprint (a database trigger refuses changes to locked figures), reference version, revisions, version comparison, milestone progress, explanations, plan vs actual with charts, exports, attached documents.
 - Budget: monthly grid with Spread, approval, copy to next year, pro rata comparison with financial records, currency view, charts, exports. Budget and plan cards on the dashboard.
 - Controls: an organization's administrator can turn off the second-person check (Admin > Controls), audited.
+- Licence application, Stage 1: applications with field specs from the artifact (`src/lib/lic/core.ts`), people with restricted fields, proposal, projections, profile, declarations, document checklist, readiness, second-person approval with a fixed copy, status history, dashboard card, demo applicant in Harbourline. Tests: `pnpm test:lic`, `tests/e2e/run.sh lic`.
 - Registers: Excel export (restricted fields left out by role) and all-or-nothing Excel import. Company profile.
 - OpenRouter answers tested with the free auto-router: real cited answers in 3 to 8 seconds.
 - Demo: Demo Company and Harbourline, 8 users. Password `Demo@12345`, development only.
