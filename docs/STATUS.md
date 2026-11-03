@@ -50,6 +50,12 @@ Last updated: 2026-11-03
 - Coverage: forty explicit form/state combinations plus refusal coverage in `scripts/test-form-marks.ts`, and HTTP download assertions in the browser suites. PDF fixtures and rendered pages are in `tests/e2e/shots/marks-*`; Schedule I (including a filled page), Schedule III, offshore Form III, continuation and annual-return pages were inspected, as was the notice screen.
 - Item B (date settings), Item C (workflow engine) and renewal were not built. Word/Excel marks were checked in the generated Office XML, not desktop Office. UAT placement checks and compliance review remain outstanding; nothing is ready for real submission.
 
+## Ingestion worker resilience (2026-11-03)
+- Worker failures keep primitive job/document identifiers before processing, then use a fresh transaction to check whether the document still exists. Deleted documents are skipped; surviving documents and jobs are marked failed. Final-commit, rollback/expiration and queue/recovery failures cannot terminate the processing loop. Logs use fixed messages and exception class names, without document values, identifiers, exception messages or SQL parameters.
+- AI validation: `python -m pytest tests -q` passed all 16 tests, including five worker regression cases using real SQLAlchemy sessions. Deleting during processing reproduces both an expired-instance `ObjectDeletedError` and a final-commit deletion race, then verifies that the next document reaches ready. The local worker was restarted with the fix.
+- A live upload of the same 1,168,000-byte E2E text reached ready in 148.32 seconds. It did not exceed 150 seconds in this run; the small margin is insufficient to remove the 300-second wait, which remains. This measurement does not establish a processing-time guarantee.
+- Full web definition-of-done checks will run after Item B in the same assigned task. UAT placement checks and compliance review remain outstanding; nothing is ready for real submission.
+
 ## Product-owner decisions (2026-11-03)
 Build these from `docs/HANDOFF-workflow-and-forms.md`, in order, before renewal:
 - DRAFT and DEMO are printed on the forms themselves.
