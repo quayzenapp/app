@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { ImportForm } from "@/components/import-form";
+import { importRecords } from "./import/actions";
 import { withTenant } from "@/lib/db";
 import { canSeeField, fmtDate, getForm, stripSensitive } from "@/lib/forms";
 import { SECTIONS } from "@/lib/sections";
@@ -19,16 +21,17 @@ export default async function RegisterList({ params, searchParams }: { params: P
   const filtered = needle ? visible.filter((r) => Object.values(r.d).some((v) => String(v ?? "").toLowerCase().includes(needle))) : visible;
   const cols = form.listFields.map((n) => form.fields.find((f) => f.name === n)!).filter((f) => f && canSeeField(f, ctx.sensitive));
   const section = SECTIONS.find((s) => s.forms?.includes(key));
-  const siblings = section?.forms?.length && section.forms.length > 1 ? section.forms : [];
+  const siblings = section?.forms?.length && (section.forms.length > 1 || section.href) ? section.forms : [];
   const labels = siblings.length ? await Promise.all(siblings.map(async (k) => [k, (await getForm(ctx.org.id, k))?.plural ?? k] as const)) : [];
   const cell = (type: string, v: unknown) => (v == null ? "" : type === "date" ? fmtDate(v) : typeof v === "number" ? v.toLocaleString("en-US") : String(v));
   return (
     <>
-      {labels.length > 0 && <div className="tabs" role="tablist">{labels.map(([k, l]) => <Link key={k} role="tab" href={`/r/${k}`} className={`tab${k === key ? " on" : ""}`} aria-selected={k === key}>{l}</Link>)}</div>}
+      {labels.length > 0 && <div className="tabs" role="tablist">{section?.href && <Link role="tab" className="tab" href={section.href}>{section.label}</Link>}{labels.map(([k, l]) => <Link key={k} role="tab" href={`/r/${k}`} className={`tab${k === key ? " on" : ""}`} aria-selected={k === key}>{l}</Link>)}</div>}
       <div className="head">
         <div className="t"><h1>{form.plural}</h1>{form.intro && <p className="muted">{form.intro}</p>}</div>
-        <div className="acts">{can(ctx, form.module, "write") && <Link className="btn p" href={`/r/${key}/new`}>Add {form.label.toLowerCase()}</Link>}</div>
+        <div className="acts"><a className="btn" href={`/r/${key}/export`}>Export to Excel</a>{can(ctx, form.module, "write") && <Link className="btn p" href={`/r/${key}/new`}>Add {form.label.toLowerCase()}</Link>}</div>
       </div>
+      {form.importable && can(ctx, form.module, "write") && <ImportForm action={importRecords.bind(null, key)} templateHref={`/r/${key}/export?template=1`} />}
       <form className="row" style={{ marginBottom: 12 }}><input name="q" defaultValue={q} placeholder="Search" aria-label="Search" /><button className="btn sm">Search</button></form>
       <div className="card qz-scroll">
         {filtered.length ? (

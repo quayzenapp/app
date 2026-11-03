@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     max_upload_mb: int = 50
     chunk_chars: int = 1400
     chunk_overlap: int = 200
-    retrieve_top_k: int = 8
+    retrieve_top_k: int = 12
     min_similarity: float = 0.60  # measured for bge-small: see scripts/measure_similarity.py
 
 

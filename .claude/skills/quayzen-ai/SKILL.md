@@ -18,6 +18,9 @@ Python 3.12, FastAPI, SQLAlchemy 2, Alembic, pgvector, in the separate `quayzen_
 - No relevant passage means say so and do not guess. Answers cite passages.
 - API keys are read from env or stored Fernet-encrypted (`AI_ENCRYPTION_KEY`), and are never returned by any endpoint.
 
+## Changing retrieval
+Run `scripts/retrieval_check.py` before and after any change, and only keep changes that measurably help. A reranker was tried and rejected (see `docs/STATUS.md`).
+
 ## Models
 `ai_models` rows: provider (`openrouter`, `bedrock`, `local`), `model_id`, purpose (`chat`, `embedding`), `is_default`, `fallback_order`, `dimensions`. Admin UI: `/admin/ai/models`.
 - Add a provider by implementing `app/providers/base.py` and registering it in `app/providers/__init__.py`.

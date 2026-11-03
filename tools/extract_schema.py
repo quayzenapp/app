@@ -80,6 +80,9 @@ out = {n: const(n) for n in ["LOOKUPS", "ROLES", "MODULES", "PERM_CODES", "SENSI
 out["REG"] = {}
 for m in re.finditer(r'^reg\("(\w+)",\s*', src, re.M):
     d = P(src[m.end():], env).obj(); d["key"] = m.group(1); d.setdefault("title", d["fields"][0]["name"]); out["REG"][m.group(1)] = d
+pages1 = open(f"{ROOT}/docs/artifact/src/pages1.js").read()
+m = re.search(r"const COMPANY_FIELDS\s*=\s*", pages1)
+out["COMPANY_FIELDS"] = P(pages1[m.end():], env).array()
 # later modules append one column per Object.assign(PERM_CODES, ...)
 out["MODULES"] += ["licensing", "development", "checklists"]
 for m in re.finditer(r"Object\.assign\(PERM_CODES, \{(.*?)\}\)", lic, re.S):

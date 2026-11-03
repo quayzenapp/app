@@ -8,6 +8,8 @@ from app.config import settings
 from app.providers import default_model, get_provider
 
 RRF_K = 60
+POOL = 40
+MAX_PER_DOC = 3
 STOP = set("the a an of and or to in for on by with is are be as at from that this which any such shall may under its it than other into not no do does what when how who where can i we our us you your there been has have had was were will would should could about".split())
 SCOPE = "(c.organization_id IS NULL OR c.organization_id = :org)"
 READY = "d.status = 'ready' AND d.superseded = false"
@@ -68,11 +70,19 @@ def search(db: Session, org_id: str, query: str, top_k: int | None = None) -> li
     if scores:
         for rank, r in enumerate(fts_rows):
             scores[r.id] = scores.get(r.id, 0) + 1 / (RRF_K + rank)
-    ids = sorted(scores, key=lambda i: -scores[i])[:top_k]
+    ids = sorted(scores, key=lambda i: -scores[i])[:POOL]
     if not ids:
         return []
     rows = db.execute(text(f"""
         SELECT c.id, c.document_id, d.title, d.short, c.page, c.section, c.text
         FROM chunks c JOIN documents d ON d.id = c.document_id WHERE c.id = ANY(:ids) AND {SCOPE}"""), {"ids": ids, "org": org_id}).all()
     by = {r.id: r for r in rows}
-    return [Hit(r.id, r.document_id, r.title, r.short, r.page, r.section, r.text, scores[r.id]) for i in ids if (r := by.get(i))]
+    # One long document mustn't crowd out the regulation that actually answers the question.
+    out: list[Hit] = []
+    per_doc: dict[str, int] = {}
+    for i in ids:
+        r = by.get(i)
+        if r and per_doc.get(r.document_id, 0) < MAX_PER_DOC:
+            per_doc[r.document_id] = per_doc.get(r.document_id, 0) + 1
+            out.append(Hit(r.id, r.document_id, r.title, r.short, r.page, r.section, r.text, scores[r.id]))
+    return out[:top_k]

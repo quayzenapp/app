@@ -167,3 +167,46 @@ model AuditLog {
   @@index([organizationId, createdAt])
   @@map("audit_logs")
 }
+
+/// Row level security enforced.
+model AnnualReturn {
+  id             String    @id @default(cuid())
+  organizationId String
+  title          String
+  template       String    @default("AR-2026")
+  periodStart    String
+  periodEnd      String
+  headcountAsAt  String
+  officeAsAt     String
+  currencyMethod String    @default("split")
+  status         String    @default("Draft")
+  /// key -> { status, num, text, source, explanation, set_by, set_at }
+  lines          Json      @default("{}")
+  preparedById   String?
+  readyById      String?
+  approvedById   String?
+  approvedAt     DateTime?
+  snapshotId     String?
+  submittedAt    String?
+  submission     Json?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([organizationId])
+  @@map("annual_returns")
+}
+
+/// Row level security enforced. Fixed copy of approved figures: the app can't change or delete it.
+model ReturnSnapshot {
+  id             String   @id @default(cuid())
+  organizationId String
+  returnId       String
+  versionNo      Int
+  lines          Json
+  hash           String
+  approvedById   String
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, returnId])
+  @@map("return_snapshots")
+}

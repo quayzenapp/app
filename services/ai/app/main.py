@@ -232,7 +232,7 @@ def test_model(mid: str, db: Session = Depends(get_db), _: Caller = Depends(plat
                 m.dimensions = len(v)
                 db.commit()
             return {"ok": True, "detail": f"Returned a vector of {len(v)} dimensions."}
-        out = "".join(p.chat_stream(m.model_id, "Reply with one short sentence.", [{"role": "user", "content": "Say hello."}], {"max_tokens": 40}))
+        out = "".join(p.chat_stream(m.model_id, "Reply with one short sentence.", [{"role": "user", "content": "Say hello."}], {"max_tokens": 400}))
         return {"ok": bool(out), "detail": out[:200] or "The model returned an empty reply."}
     except ProviderError as e:
         return {"ok": False, "detail": str(e)}

@@ -8,15 +8,19 @@
     "start": "next start",
     "db:seed": "tsx prisma/seed.ts",
     "test:isolation": "tsx scripts/test-isolation.ts",
-    "db:migrate": "prisma migrate deploy"
+    "db:migrate": "prisma migrate deploy",
+    "test:returns": "tsx scripts/test-annual-return.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.1",
     "@prisma/client": "^7.10.1",
+    "docx": "^9.15.1",
     "dotenv": "^18.0.9",
+    "exceljs": "^4.4.0",
     "jose": "^6.2.15",
     "next": "16.4.3",
     "next-auth": "5.0.0-beta.32",
+    "pdf-lib": "^1.17.1",
     "pg": "^8.23.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",

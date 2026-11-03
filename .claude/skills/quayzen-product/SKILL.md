@@ -42,6 +42,9 @@ Other sources: `store.js` (data shape), `ui.js` (validation, calculated fields, 
 ## Roles and permission levels
 Levels: none < read < write < approve. Six template roles: admin, compliance, hr, finance, reviewer, adviser. Sensitive field categories: personal, id, pay, ubo, bank. Sensitive values are removed on the server for roles without access. Enforcement details are in `quayzen-architecture`.
 
+## Annual return (`src/lib/ar/engine.ts`)
+A reviewed verbatim port of `ar.js`; keep it comparable with the source and test changes with `pnpm test:returns`, whose figures are worked out by hand. The preparer can't approve their own return. Approval stores an unchangeable snapshot, and the PDF uses that snapshot. The system never ticks declarations, signs, dates or submits. A PDF that fails its read-back isn't delivered.
+
 ## Dashboard figures (`pages1.js`)
 - Open requests: status not Submitted or Closed.
 - Obligations not met: status not Met or Not applicable.

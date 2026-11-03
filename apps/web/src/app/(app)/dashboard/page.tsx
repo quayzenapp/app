@@ -22,10 +22,13 @@ function LicRing({ lic }: { lic: D }) {
 export default async function Dashboard() {
   const ctx = await requirePermission("dashboard");
   const today = todayISO();
-  const rows = await withTenant(ctx.org.id, (tx) => tx.record.findMany({ where: { organizationId: ctx.org.id, archivedAt: null } }));
+  const canM = (m: string) => can(ctx, m);
+  const { rows, latest } = await withTenant(ctx.org.id, async (tx) => ({
+    rows: await tx.record.findMany({ where: { organizationId: ctx.org.id, archivedAt: null } }),
+    latest: canM("returns") ? await tx.annualReturn.findFirst({ where: { organizationId: ctx.org.id }, orderBy: { periodEnd: "desc" } }) : null,
+  }));
   const list = (k: string) => rows.filter((r) => r.formKey === k);
   const data = (k: string) => list(k).map((r) => r.data as D);
-  const canM = (m: string) => can(ctx, m);
 
   const emps = canM("workforce") ? data("employees").filter((e) => e.worker_type === "Employee" && e.status !== "Left" && String(e.start_date) <= today && (!e.end_date || String(e.end_date) >= today)) : [];
   const local = emps.filter((e) => e.nationality_group === "Sri Lankan").length;
@@ -48,6 +51,7 @@ export default async function Dashboard() {
         {canM("workforce") && <Stat value={emps.length} label={`Employees today (${local} Sri Lankan, ${emps.length - local} other)`} section="workforce" />}
         {canM("investment") && <Stat value={list("investments").filter((r) => r.reviewStatus !== "Confirmed").length} label="Funding records awaiting review" section="investment" warn />}
         {canM("visas") && <Stat value={visas.filter((v) => v.expiry_date && daysUntil(String(v.expiry_date)) <= 90 && daysUntil(String(v.expiry_date)) >= -30).length} label="Visas expiring within 90 days" section="visas" />}
+        {canM("returns") && <Stat value={latest?.status ?? "None"} label={latest ? `Latest annual return: ${latest.title}` : "No annual return started"} section="returns" />}
       </div>
       <div className="cols">
         <div className="card">

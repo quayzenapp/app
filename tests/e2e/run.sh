@@ -6,8 +6,10 @@ docker run --rm --network host --user "$(id -u)" -e HOME=/tmp -v "$PWD":/e2e -w 
 code=$?
 export PGPASSWORD=quayzen_dev_owner
 psql -h localhost -p 5434 -U quayzen_owner quayzen -Atq <<'SQL'
-DELETE FROM records WHERE data->>'title' = 'E2E obligation';
-DELETE FROM audit_logs WHERE summary LIKE '%E2E%' OR summary LIKE '%e2e-%@demo.test%' OR ("entityType"='obligations' AND action='create');
+DELETE FROM records WHERE data->>'title' = 'E2E obligation' OR data->>'description' = 'E2E import';
+DELETE FROM return_snapshots WHERE "returnId" IN (SELECT id FROM annual_returns WHERE title LIKE 'E2E%');
+DELETE FROM annual_returns WHERE title LIKE 'E2E%';
+DELETE FROM audit_logs WHERE summary LIKE '%E2E%' OR summary LIKE '%e2e-%@demo.test%' OR ("entityType"='obligations' AND action='create') OR "entityType" IN ('returns') OR (action='import' AND summary LIKE '%e2e%');
 DELETE FROM audit_logs WHERE "organizationId" IN (SELECT id FROM organizations WHERE name LIKE 'E2E Org %');
 DELETE FROM organizations WHERE name LIKE 'E2E Org %';
 DELETE FROM users WHERE email LIKE 'e2e-%@demo.test';

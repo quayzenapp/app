@@ -57,6 +57,7 @@ const emp = (ref: string, full_name: string, job_title: string, staff_category: 
 
 async function main() {
   for (const r of Object.values(A.REG)) await upsertGlobalForm(r);
+  await upsertGlobalForm({ key: "company_profile", label: "Company profile", plural: "Company profile", module: "company", title: "name", list: ["name"], fields: A.COMPANY_FIELDS });
   for (const [key, values] of Object.entries<string[]>(A.LOOKUPS)) {
     const row = await db.lookup.findFirst({ where: { organizationId: null, key } });
     if (row) await db.lookup.update({ where: { id: row.id }, data: { values } });
@@ -111,6 +112,30 @@ async function main() {
     people: [{ full_name: "Demo Parent Holdings Ltd", person_type: "Corporate", role: "Shareholder", nationality: "Singapore", shareholding_pct: 100, appointed_date: d(-700) }],
     ubo: [{ full_name: "Helen Example (DEMO)", nationality: "Singaporean", ownership_pct: 100, date_of_birth: "1975-04-12", passport_number: "DEMO-P123", declaration_status: "Signed copy on file" }],
   } as any);
+
+  // Everything the 2025/26 annual return reads. Added once, and only if the demo has no financial records yet.
+  if (!(await db.record.count({ where: { organizationId: demo.id, formKey: "fin_entries" } }))) {
+    const office = (await db.record.findFirst({ where: { organizationId: demo.id, formKey: "offices" } }))!;
+    const usd = (entry_date: string, category: string, description: string, amount: number, extra = {}) => ({ entry_date, category, description, original_amount: amount, original_currency: "USD", usd_rate: 1, usd_amount: amount, conversion_method: "USD: same currency", staff_group: "Not applicable", pre_operating: "No", _review: "Confirmed", ...extra });
+    const lkr = (entry_date: string, category: string, description: string, amount: number, extra = {}) => ({ entry_date, category, description, original_amount: amount, original_currency: "LKR", usd_rate: 300, usd_amount: Math.round((amount / 300) * 100) / 100, lkr_rate: 1, lkr_amount: amount, conversion_method: "USD: LKR amount / 300 LKR per USD; LKR: same currency", rate_date: entry_date, rate_source: "Demo rate", staff_group: "Not applicable", pre_operating: "No", _review: "Confirmed", ...extra });
+    const sl = { staff_group: "Sri Lankan" }, nsl = { staff_group: "Non-Sri Lankan" };
+    await db.organization.update({ where: { id: demo.id }, data: { profile: { demo: true, licence_number: "DEMO-AP-0147", legal_form: "Private Company with Limited Liability", business_sector: "Information Technology (demo)", designation_type: "Authorised Person only", operations_commenced: "Yes", registered_address: "DEMO Tower 1, Port City Colombo", tin: "DEMO-TIN-001", roc_filing_info: "Annual return filed with the Registrar of Companies (demo).", contact_name: "Dinithi Admin (DEMO)", contact_email: "admin@demo.test", contact_phone: "+94 11 000 0000", signatory_name: "Dinithi Admin (DEMO)", signatory_designation: "Director" } } });
+    for (const [formKey, rows] of Object.entries<any[]>({
+      fin_entries: [
+        usd("2025-09-30", "Revenue", "Software services H1 (demo)", 410000, { country_region: "Singapore" }),
+        usd("2026-03-31", "Revenue", "Software services H2 (demo)", 465000, { country_region: "United Kingdom" }),
+        usd("2025-06-15", "Capital expenditure", "Servers and laptops (demo)", 62000),
+        lkr("2026-03-31", "Basic remuneration", "Local salaries (demo)", 38400000, sl),
+        usd("2026-03-31", "Basic remuneration", "Expatriate salaries (demo)", 186000, nsl),
+        lkr("2026-03-31", "Allowance payments", "Local allowances (demo)", 4200000, sl),
+        lkr("2026-03-31", "EPF payment", "EPF (demo)", 3072000, sl),
+        lkr("2026-03-31", "ETF payment", "ETF (demo)", 1152000, sl),
+        usd("2026-03-31", "Office rent", "Office rent (demo)", 96000, { office_id: office.id }),
+        lkr("2026-03-31", "Other operational expenditure", "Utilities and supplies (demo)", 2900000),
+      ],
+      housing: [{ description: "Apartment for expatriate staff (demo)", staff_group: "Non-Sri Lankan", tenure: "Leased", from_date: "2025-01-01" }],
+    })) for (const { _review, ...data } of rows) await db.record.create({ data: { organizationId: demo.id, formKey, data, reviewStatus: _review ?? null } });
+  }
 
   await seedRecords(harbour.id, {
     obligations: [{ title: "Submit the licence application pack (demo)", obligation_type: "Reporting deadline", basis: "Internal good practice", source_document: "Application process page", deadline: d(21), recurrence: "One-off", status: "In progress", needs_review: "No" }],

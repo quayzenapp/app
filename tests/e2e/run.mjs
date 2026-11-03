@@ -1,4 +1,6 @@
 import { chromium } from "playwright";
+import ExcelJS from "exceljs";
+import { PDFDocument } from "pdf-lib";
 const S = process.argv[2], BASE = "http://localhost:3000"; let fails = 0;
 const check = (n, ok, extra = "") => { console.log(`${ok ? "PASS" : "FAIL"}  ${n} ${ok ? "" : extra}`); if (!ok) fails++; };
 const browser = await chromium.launch();
@@ -66,12 +68,67 @@ check("Ask: a real question shows sources even with no model key", (await admin.
 await admin.page.screenshot({ path: `${S}/ask.png` });
 check("no client errors for admin", admin.errs.length === 0, admin.errs.join(" | ").slice(0, 300));
 
+/* ---------- annual return: prepare, second-person approval, official PDF, exports ---------- */
+const reviewer = await session("reviewer@demo.test");
+await go(admin.page, "/returns");
+await admin.page.fill('input[name="title"]', "E2E Return"); await admin.page.click('button:has-text("Create")');
+await admin.page.waitForURL(/\/returns\/[^/]+$/, { timeout: 60000 });
+const retUrl = admin.page.url().replace(BASE, "");
+await admin.page.click('button:has-text("Mark ready for review")'); await admin.page.waitForSelector(".banner.bad");
+check("a return with unset lines can't be marked ready", (await text(admin.page)).includes("not set or missing"));
+await admin.page.click('button:has-text("Use calculated values")'); await admin.page.waitForSelector(".banner.info");
+await go(admin.page, retUrl); t = await text(admin.page);
+check("revenue comes from demo records", t.includes("United Kingdom: USD 465,000.00"), t.slice(0, 300));
+check("capital expenditure comes from demo records", t.includes("62,000.00"));
+check("7 employees split 5 and 2 from the register", /No\. of employees - Sri Lankan[\s\S]{0,120}5/.test(t) && /No\. of employees - Non-Sri Lankan[\s\S]{0,120}2/.test(t));
+const unset = await admin.page.locator("tr:has(.badge:text-is('Not set')) a.btn").evaluateAll((a) => a.map((x) => x.getAttribute("href")));
+for (const h of unset) {
+  await go(admin.page, h);
+  const na = admin.page.locator('input[value="not_applicable"]'), conf = admin.page.locator('input[value="conf_yes"]');
+  if (await conf.count()) await conf.check(); else await na.check();
+  if (await admin.page.locator("#ex").count()) await admin.page.fill("#ex", "E2E test");
+  await admin.page.click('button:has-text("Save line")'); await admin.page.waitForURL("**" + retUrl, { timeout: 30000 });
+}
+await admin.page.click('button:has-text("Mark ready for review")'); await admin.page.waitForFunction(() => document.querySelector(".head .badge")?.innerText === "Ready for review", null, { timeout: 30000 });
+check(`all ${unset.length} remaining lines set; return is ready`, true);
+await admin.page.click('button:has-text("Approve and keep a snapshot")'); await admin.page.waitForSelector(".banner.bad");
+check("the person who prepared it can't approve it", (await text(admin.page)).includes("different person must approve"));
+await go(reviewer.page, retUrl); await reviewer.page.click('button:has-text("Approve and keep a snapshot")');
+await reviewer.page.waitForFunction(() => document.body.innerText.includes("Approved snapshot") || document.querySelector(".banner.bad"), null, { timeout: 30000 }).catch(() => {});
+check("a second person approves and a snapshot is kept", (await text(reviewer.page)).includes("Approved snapshot"), (await reviewer.page.locator(".banner").allInnerTexts()).join(" | ").slice(0, 700).replace(/\s+/g, " "));
+await go(admin.page, retUrl);
+check("lines are locked after approval", (await admin.page.locator('a:has-text("Check / set")').count()) === 0);
+let res = await admin.ctx.request.get(BASE + retUrl + "/pdf");
+const hdr = res.headers()["content-disposition"] ?? "";
+check("official PDF downloads, marked DEMO and not DRAFT", res.status() === 200 && hdr.includes("DEMO_Annual_Return") && !hdr.includes("DRAFT"), `${res.status()} ${hdr} ${res.status() === 200 ? "" : await res.text()}`);
+const pf = (await PDFDocument.load(await res.body())).getForm();
+check("PDF holds the demo figures", pf.getTextField("p1_field_001").getText() === "Demo Company" && pf.getTextField("p2_field_037").getText() === "62,000.00" && pf.getTextField("p3_field_017").getText() === "5", pf.getTextField("p2_field_037").getText());
+check("PDF declarations and signature are blank", !pf.getCheckBox("p4_checkbox_01").isChecked() && !pf.getTextField("p4_field_015").getText());
+for (const [f, sig] of [["xlsx", "PK"], ["docx", "PK"], ["pdf", "%PDF"]]) { const x = await admin.ctx.request.get(BASE + retUrl + "/report?format=" + f); check(`working report exports as ${f}`, x.status() === 200 && (await x.body()).subarray(0, sig.length).toString() === sig); }
+await admin.page.fill('input[name="submission_method"]', "E2E portal"); await admin.page.click('button:has-text("Record submission")');
+await admin.page.waitForFunction(() => document.querySelector(".head .badge")?.innerText === "Submitted", null, { timeout: 30000 });
+check("submission is recorded, not sent", true);
+await admin.page.screenshot({ path: `${S}/return.png`, fullPage: false });
+
+/* ---------- Excel import and export ---------- */
+const sheet = async (rows) => { const wb = new ExcelJS.Workbook(); const ws = wb.addWorksheet("Data"); rows.forEach((r) => ws.addRow(r)); return Buffer.from(await wb.xlsx.writeBuffer()); };
+const up = async (buf) => { await go(admin.page, "/r/fin_entries"); await admin.page.click("details summary"); await admin.page.setInputFiles('input[type="file"]', { name: "e2e.xlsx", mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", buffer: buf }); await admin.page.click('button:has-text("Import")'); await admin.page.waitForSelector(".banner", { state: "visible" }); await admin.page.waitForSelector("details .banner", { timeout: 30000 }); return admin.page.locator("details .banner").first().innerText(); };
+const H = ["Date (or period end)", "Annual return category", "Description", "Original amount", "Original currency"];
+t = await up(await sheet([H, [new Date("2026-01-05"), "Revenue", "E2E import", 100, "USD"], ["2026-01-06", "Not a category", "E2E import", "abc", "USD"]]));
+check("a bad row stops the whole import and names the row", t.includes("Nothing was imported") && t.includes("Row 3"), t);
+t = await up(await sheet([H, [new Date("2026-01-05"), "Revenue", "E2E import", 100, "USD"]]));
+check("a good file imports", t.includes("1 record(s) imported"), t);
+check("imported figures are calculated", /E2E import/.test(await text(admin.page)));
+res = await admin.ctx.request.get(BASE + "/r/fin_entries/export"); check("register exports to Excel", res.status() === 200 && (await res.body()).subarray(0, 2).toString() === "PK");
+
 const adviser = await session("adviser@demo.test");
 await go(adviser.page, "/r/employees"); check("adviser blocked from workforce", adviser.page.url().includes("forbidden"));
 await go(adviser.page, "/r/ubo");
 await go(adviser.page, await adviser.page.locator("tbody a").first().getAttribute("href"));
 const html = await adviser.page.content();
 check("restricted value never reaches the adviser's browser", !html.includes("DEMO-P123") && !html.includes("1975-04-12"));
+{ const x = await adviser.ctx.request.get(BASE + "/r/ubo/export"); const wb = new ExcelJS.Workbook(); await wb.xlsx.load(await x.body()); let all = ""; wb.eachSheet((w) => w.eachRow((r) => { all += JSON.stringify(r.values); })); check("restricted values are left out of the adviser's Excel export", x.status() === 200 && all.includes("Helen Example") && !all.includes("DEMO-P123") && !all.includes("Passport number")); }
+{ const x = await adviser.ctx.request.get(BASE + "/r/employees/export"); check("adviser can't export a section they can't read", x.status() === 403); }
 check("adviser has no Save", (await adviser.page.locator('button:has-text("Save")').count()) === 0);
 await go(adviser.page, "/admin"); check("adviser blocked from admin", adviser.page.url().includes("forbidden"));
 await go(adviser.page, "/dashboard");

@@ -28,7 +28,7 @@ Browser -> Next.js (apps/web: UI, BFF, RBAC, tenancy) -> Postgres db `quayzen` (
 - Tenant = `Organization`. Users join through `Membership` (user, org, role).
 - The active org is in the `qz_org` cookie and is **always re-validated against Membership on each request**. Never trust a client-supplied org id.
 - `getTenantContext()` in `src/lib/tenant.ts` is the only way to get the org, role and permissions.
-- Tenant tables (`records`, `audit_logs`) use Postgres RLS with `FORCE`. Access them only through `withTenant(orgId, tx => ...)`, which sets `app.org_id` for the transaction, using the non-owner `quayzen_app` role. RLS is the second line of defence, so still filter by `organizationId` in code.
+- Tenant tables (`records`, `audit_logs`, `annual_returns`, `return_snapshots`) use Postgres RLS with `FORCE`. Access them only through `withTenant(orgId, tx => ...)`, which sets `app.org_id` for the transaction, using the non-owner `quayzen_app` role. RLS is the second line of defence, so still filter by `organizationId` in code.
 - `platformDb` is for identity and admin tables only (users, organisations, memberships, roles, forms).
 
 ## RBAC: built into the app
@@ -46,6 +46,7 @@ Browser -> Next.js (apps/web: UI, BFF, RBAC, tenancy) -> Postgres db `quayzen` (
 - All dates for deadlines use `todayISO()` (Asia/Colombo), never `toISOString()`.
 - Server Components by default, Server Actions for mutations, zod to validate input.
 - Use artifact CSS classes for the look (see `quayzen-design`) and Tailwind for layout.
+- After `prisma generate`, restart the dev server: it caches the client in a global.
 - Secrets only in `.env` files (gitignored). The seeded demo passwords are for development only.
 
 ## Commands

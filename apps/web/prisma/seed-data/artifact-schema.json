@@ -2232,5 +2232,164 @@
    ],
    "key": "fx_rates"
   }
- }
+ },
+ "COMPANY_FIELDS": [
+  {
+   "name": "name",
+   "label": "Company name (as in the public register)",
+   "type": "text",
+   "required": true,
+   "group": "Public register entry"
+  },
+  {
+   "name": "licence_number",
+   "label": "Licence number",
+   "type": "text",
+   "group": "Public register entry",
+   "help": "As shown in the register, e.g. CPCEC/2026/0171. It should match your main licence record."
+  },
+  {
+   "name": "register_address",
+   "label": "Address (as listed)",
+   "type": "textarea",
+   "group": "Public register entry",
+   "help": "The register may show an overseas address. Your registered address in Sri Lanka is recorded separately below."
+  },
+  {
+   "name": "legal_form",
+   "label": "Legal form",
+   "type": "text",
+   "group": "Public register entry",
+   "list": "legalforms",
+   "help": "e.g. Private Company with Limited Liability"
+  },
+  {
+   "name": "business_sector",
+   "label": "Business sector",
+   "type": "text",
+   "group": "Public register entry",
+   "help": "As shown in the register and your licence. The annual return asks for it (item 1(d))."
+  },
+  {
+   "name": "designation_type",
+   "label": "BSI designation",
+   "type": "choice",
+   "lookup": "designation_types",
+   "group": "Public register entry",
+   "help": "Authorised Person only, or the type of Business of Strategic Importance. Used in the annual return (item 1(c))."
+  },
+  {
+   "name": "bsi_gazette_no",
+   "label": "BSI gazette number",
+   "type": "text",
+   "group": "Public register entry",
+   "help": "e.g. 2483/51"
+  },
+  {
+   "name": "bsi_gazette_url",
+   "label": "BSI gazette link",
+   "type": "url",
+   "group": "Public register entry",
+   "help": "Link to the gazette on the Port City website."
+  },
+  {
+   "name": "register_checked",
+   "label": "Register entry last checked on",
+   "type": "date",
+   "group": "Public register entry"
+  },
+  {
+   "name": "registration_no",
+   "label": "Company registration number",
+   "type": "text"
+  },
+  {
+   "name": "country_of_incorporation",
+   "label": "Country of incorporation",
+   "type": "text"
+  },
+  {
+   "name": "incorporation_date",
+   "label": "Date of incorporation",
+   "type": "date"
+  },
+  {
+   "name": "operations_commenced",
+   "label": "Operations commenced?",
+   "type": "choice",
+   "choices": [
+    "Yes",
+    "No"
+   ]
+  },
+  {
+   "name": "operations_commenced_date",
+   "label": "Operations commenced on",
+   "type": "date"
+  },
+  {
+   "name": "registered_address",
+   "label": "Registered address in Sri Lanka",
+   "type": "textarea",
+   "help": "Used in the annual return (item 1(f))."
+  },
+  {
+   "name": "tin",
+   "label": "TIN number",
+   "type": "text"
+  },
+  {
+   "name": "roc_filing_info",
+   "label": "Forms submitted to the Registrar of Companies (or reason if none)",
+   "type": "textarea",
+   "help": "Annual Return 2026, item 1(i)."
+  },
+  {
+   "name": "main_licence_id",
+   "label": "Main licence record",
+   "type": "ref",
+   "ref": "licences",
+   "help": "Add licences under Licences and Obligations."
+  },
+  {
+   "name": "financial_year_end",
+   "label": "Financial year end (e.g. 31 March)",
+   "type": "text"
+  },
+  {
+   "name": "contact_name",
+   "label": "Point of contact - name",
+   "type": "text",
+   "group": "Contact and signatory"
+  },
+  {
+   "name": "contact_email",
+   "label": "Point of contact - email",
+   "type": "text",
+   "group": "Contact and signatory"
+  },
+  {
+   "name": "contact_phone",
+   "label": "Point of contact - telephone",
+   "type": "text",
+   "group": "Contact and signatory"
+  },
+  {
+   "name": "signatory_name",
+   "label": "Authorised signatory - full name",
+   "type": "text",
+   "group": "Contact and signatory"
+  },
+  {
+   "name": "signatory_designation",
+   "label": "Authorised signatory - designation",
+   "type": "text",
+   "group": "Contact and signatory"
+  },
+  {
+   "name": "notes",
+   "label": "Notes",
+   "type": "textarea"
+  }
+ ]
 }

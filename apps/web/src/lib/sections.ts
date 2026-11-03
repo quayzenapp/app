@@ -5,7 +5,7 @@ export const ASK_LABEL = `Ask ${ASSISTANT_NAME}`;
 export type Section = { key: string; label: string; module: string | null; forms?: string[]; href?: string; icon?: string };
 export const SECTIONS: Section[] = [
   { key: "dashboard", label: "Dashboard", module: "dashboard", href: "/dashboard" },
-  { key: "company", label: "Company Profile", module: "company", forms: ["people", "ubo"] },
+  { key: "company", label: "Company Profile", module: "company", forms: ["people", "ubo"], href: "/company" },
   { key: "apply", label: "Licence Application", module: "licensing" },
   { key: "changes", label: "Licence Changes", module: "licensing" },
   { key: "develop", label: "Development Approvals", module: "development" },
@@ -16,7 +16,7 @@ export const SECTIONS: Section[] = [
   { key: "investment", label: "Investment and Funding", module: "investment", forms: ["investments"] },
   { key: "budget", label: "Budget", module: "budget" },
   { key: "offices", label: "Office Space", module: "offices", forms: ["offices", "office_plans", "rent_options"] },
-  { key: "returns", label: "Annual Returns", module: "returns", forms: ["fin_entries", "housing"] },
+  { key: "returns", label: "Annual Returns", module: "returns", forms: ["fin_entries", "housing"], href: "/returns" },
   { key: "obligations", label: "Licences and Obligations", module: "obligations", forms: ["licences", "obligations"] },
   { key: "visas", label: "Visas and Permits", module: "visas", forms: ["visas"] },
   { key: "documents", label: "Documents", module: "documents" },

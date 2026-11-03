@@ -1,1 +1,10 @@
-{ "name": "quayzen-e2e", "private": true, "type": "module", "dependencies": { "playwright": "1.48.2" } }
+{
+ "name": "quayzen-e2e",
+ "private": true,
+ "type": "module",
+ "dependencies": {
+  "playwright": "1.48.2",
+  "exceljs": "4.4.0",
+  "pdf-lib": "1.17.1"
+ }
+}
