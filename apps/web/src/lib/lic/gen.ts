@@ -7,6 +7,7 @@ import path from "node:path";
 import { JSDOM } from "jsdom";
 import JSZip from "jszip";
 import * as PDFLib from "pdf-lib";
+import type { OfficialDateFormatter } from "@/lib/lic/date-formats";
 import { createLic, today } from "@/lib/lic/core";
 
 const { DOMParser, XMLSerializer } = new JSDOM("").window;
@@ -23,9 +24,10 @@ export async function formBytes(key) {
   return new Uint8Array(await readFile(path.join(/*turbopackIgnore: true*/ process.cwd(), "assets/forms", `${key}.${EXT[key]}`)));
 }
 
-export function createGen(Store: any): any {
+export function createGen(Store: any, formatDate?: OfficialDateFormatter): any {
 const lic = createLic(Store);
 const { APP_FMAP, APP_LOCKED, APP_SPEC, APP_STAGES, APP_STATUS, APP_STEPS, APP_TYPES, CHECKLIST, CL_STATUS, FILING_KINDS, FILING_STATUS, FUND_MODES, LEGAL_FOREIGN, LEGAL_LOCAL, MARKS, MP_ROWS, PERSON_FMAP, PERSON_GROUP_LABELS, PERSON_SPEC, PROFILE_LABELS, ROLE, S1_SECTORS, S3_ITEMS, TEF_PAIR_LABELS, TEF_ROWS, addMonthsDay, af, appOf, appPeople, appReadiness, checklistRows, companyCurrent, ddmmyyyy, fdiSuggestion, filled, getPath, hasRole, isCo, personGroups, personMissing, personParts, pf, setPath, stepMissing, tefSheet, tefSum, tefTotals, tefVal, STATUS_FIELDS, ENTITY_TYPES, STEP_INTRO } = lic;
+const formDate = formatDate ?? ((_form, _field, value) => ddmmyyyy(value));
 const FORM_SRC = { s1: "Schedule I - Application for licence", s3: "Schedule III - Notice of change", s4: "Schedule IV - Annual return", s5: "Schedule V - Renewal", s6: "Schedule VI - Surrender",
   o3: "Offshore Form III - Changes to particulars", o5: "Offshore Form V - Notice to cease business", ap_decl: "AP Declaration", ubo: "UBO Declaration", ds: "Information of Directors and Shareholders",
   bprofile: "Business Profile and KMP Information", tef: "Technical Evaluation Form" };
@@ -159,8 +161,8 @@ function s1Part3(p, R) {
   const put = (k, val, lab) => { if (filled(val)) { R.v[k] = String(val); if (lab) R.items[k] = lab; } }, m = (k) => markOr(p, k, p[k]);
   put("Text155", p.name, "Part III(a) Name"); splitLines(p.address, 3).forEach((l, i) => put(T(8 + i), l, "Part III(b) Company address"));
   const nat = String(m("c_nature") || ""); if (nat) { const ls = wrapPlain(nat, 2); ls.forEach((l, i) => put(T(11 + i), l, "Part III(c) Nature and type of business")); }
-  put("Text13", m("id_no")); put("Text14", ddmmyyyy(p.c_inc_date) || m("c_inc_date")); put("Text15", m("c_inc_place"));
-  put("Text16", ddmmyyyy(p.c_lic_date) || m("c_lic_date")); put("Text17", m("c_lic_type")); put("Text18", m("c_lic_no"));
+  put("Text13", m("id_no")); put("Text14", formDate("s1", "Text14", p.c_inc_date) || m("c_inc_date")); put("Text15", m("c_inc_place"));
+  put("Text16", formDate("s1", "Text16", p.c_lic_date) || m("c_lic_date")); put("Text17", m("c_lic_type")); put("Text18", m("c_lic_no"));
   put("Text19", m("c_sup_name")); splitLines(p.c_sup_address, 3).forEach((l, i) => put(T(20 + i), l)); put("Text23", m("c_sup_tel")); put("Text24", m("c_sup_email"));
   (p.c_capital || []).slice(0, 3).forEach((r, i) => S1.p3cap[i].forEach((n, j) => put(T(n), r[["year", "capital", "retained", "other"][j]])));
   (p.c_perf || []).slice(0, 3).forEach((r, i) => S1.p3perf[i].forEach((n, j) => put(T(n), r[["year", "assets", "liabilities", "pbt"][j]])));
@@ -172,8 +174,8 @@ function s1Part45(p, R, part) {
   const put = (k, val, lab) => { if (filled(val)) { R.v[k] = String(val); if (lab) R.items[k] = lab; } }, m = k => markOr(p, k, p[k]);
   const g = { Male: part === "IV" ? 233 : 318, Female: part === "IV" ? 235 : 319, Other: part === "IV" ? 236 : 320 }[p.gender];
   if (part === "IV") {
-    put("Text229", m("title")); put("Text230", p.name); put("Text231", ddmmyyyy(p.dob) || m("dob")); put("Text232", m("pob")); put("Text237", p.nationality);
-    put("Text238", m("nic")); put("Text239", m("passport_no")); put("Text240", ddmmyyyy(p.passport_expiry) || m("passport_expiry")); put("Text241", m("passport_country")); put("Text242", m("passport_authority")); put("Text243", m("residence_length"));
+    put("Text229", m("title")); put("Text230", p.name); put("Text231", formDate("s1", "Text231", p.dob) || m("dob")); put("Text232", m("pob")); put("Text237", p.nationality);
+    put("Text238", m("nic")); put("Text239", m("passport_no")); put("Text240", formDate("s1", "Text240", p.passport_expiry) || m("passport_expiry")); put("Text241", m("passport_country")); put("Text242", m("passport_authority")); put("Text243", m("residence_length"));
     if (p.work_permit) R.c[C(p.work_permit === "Yes" ? 244 : 245)] = true;
     put("Text247", m("nw_assets")); put("Text248", m("nw_liabilities"));
     (p.banks || []).slice(0, 3).forEach((r, i) => S1.p4bank[i].forEach((n, j) => put(T(n), r[["bank", "type", "date", "amount"][j]])));
@@ -183,8 +185,8 @@ function s1Part45(p, R, part) {
     (p.cv_work || []).slice(0, 3).forEach((r, i) => { put(T(275 + i), r.from); put(T(278 + i), r.to); put(T(281 + i), r.employer); put(T(284 + i), r.designation); put(T(287 + i), r.resp, "Part IV(i) Key responsibilities"); });
     (p.cv_dirs || []).slice(0, 4).forEach((r, i) => { put(T(290 + i), r.company); put(T(294 + i), r.place); put(T(298 + i), r.date); put(T(302 + i), r.nature); });
   } else {
-    put("Text306", p.position); put("Text307", m("title")); put("Text308", p.name); put("Text309", ddmmyyyy(p.dob) || m("dob")); put("Text310", m("pob")); put("Text311", p.nationality);
-    put("Text312", m("nic")); put("Text313", m("passport_no")); put("Text314", ddmmyyyy(p.passport_expiry) || m("passport_expiry")); put("Text315", m("passport_country")); put("Text316", m("passport_authority")); put("Text317", m("residence_length"));
+    put("Text306", p.position); put("Text307", m("title")); put("Text308", p.name); put("Text309", formDate("s1", "Text309", p.dob) || m("dob")); put("Text310", m("pob")); put("Text311", p.nationality);
+    put("Text312", m("nic")); put("Text313", m("passport_no")); put("Text314", formDate("s1", "Text314", p.passport_expiry) || m("passport_expiry")); put("Text315", m("passport_country")); put("Text316", m("passport_authority")); put("Text317", m("residence_length"));
     if (p.work_permit) R.c[C(p.work_permit === "Yes" ? 321 : 322)] = true;
   }
   if (g) R.c[C(g)] = true;
@@ -224,7 +226,7 @@ async function fillSpecForm(key, spec, data, extra = {}) {
     if (pdf.check) { if (val) c[pdf.check] = true; continue; }
     if (!filled(val)) continue;
     if (pdf.dmy) { if (/^\d{4}-\d{2}-\d{2}$/.test(val)) { v[pdf.dmy[0]] = val.slice(8, 10); v[pdf.dmy[1]] = val.slice(5, 7); v[pdf.dmy[2]] = op.yy ? val.slice(2, 4) : val.slice(0, 4); } continue; }
-    const txt = t === "date" ? ddmmyyyy(val) : t === "num" ? fmtNum(val) : String(val);
+    const txt = t === "date" ? formDate(key, k, val) : t === "num" ? fmtNum(val) : String(val);
     if (Array.isArray(pdf)) splitLines(txt, pdf.length).forEach((x, i) => { v[pdf[i]] = x; items[pdf[i]] = l; });
     else { v[pdf] = txt; items[pdf] = l; }
   }
@@ -240,7 +242,14 @@ async function docxOpen(key) {
   if (doc.getElementsByTagName("parsererror").length || doc.documentElement.localName !== "document") throw new Error(`The ${FORM_SRC[key]} file could not be read, so it was not filled.`);
   return { zip, doc };
 }
-async function docxSave(d) { d.zip.file("word/document.xml", new XMLSerializer().serializeToString(d.doc)); return d.zip.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 6 }, mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" }); }
+async function docxSave(d) {
+  const expected = new XMLSerializer().serializeToString(d.doc);
+  d.zip.file("word/document.xml", expected);
+  const blob = await d.zip.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 6 }, mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+  const back = await JSZip.loadAsync(await blob.arrayBuffer());
+  if (await back.file("word/document.xml")?.async("string") !== expected) throw new Error("The filled Word form failed its read-back and was not delivered.");
+  return blob;
+}
 const wkids = (el, tag) => [...el.childNodes].filter(n => n.nodeType === 1 && n.localName === tag);
 const wtables = doc => [...doc.getElementsByTagNameNS(WNS, "tbl")];
 const wrows = tbl => wkids(tbl, "tr"), wcells = tr => wkids(tr, "tc");
@@ -293,7 +302,7 @@ async function buildUboDeclarations(a, o = {}) {
   for (const u of owners) {
     const d = await docxOpen("ubo"), [t0, t1, t2] = wtables(d.doc), set = (t, r, val) => { const c = wcells(wrows(t)[r])[1]; if (c && filled(val)) wSetCell(c, val); };
     set(t0, 0, getPath(a, "q.reg_no")); set(t0, 1, getPath(a, "p1.name")); set(t0, 2, getPath(a, "q.co_type"));
-    [u.full_name, u.previous_name, ddmmyyyy(u.date_of_birth), u.place_of_birth, u.nationality, u.country_of_residence, u.residential_address, u.business_address, u.last_known_address, u.postal_address, u.email, null, u.nic_number, u.tin, u.passport_number, u.nature_extent].forEach((val, i) => { if (i !== 11) set(t1, i, val); });
+    [u.full_name, u.previous_name, formDate("ubo", "date_of_birth", u.date_of_birth), u.place_of_birth, u.nationality, u.country_of_residence, u.residential_address, u.business_address, u.last_known_address, u.postal_address, u.email, null, u.nic_number, u.tin, u.passport_number, u.nature_extent].forEach((val, i) => { if (i !== 11) set(t1, i, val); });
     if (u.mobile) set(t1, 11, `Mobile: ${u.mobile}`);
     [pr.name, pr.capacity, pr.email, pr.tel, pr.mobile, pr.address].forEach((val, i) => set(t2, i, val));
     if (o.model) { out.push({ name: `UBO_Declaration_copy_${fileSafe(u.full_name)}`, model: docxToModel(d, `Beneficial Ownership Declaration - ${u.full_name}`, "UBO Declaration") }); continue; }

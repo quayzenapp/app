@@ -1,3 +1,4 @@
+import { createDateFormatter, parseDateFormats, type DateFormats } from "@/lib/lic/date-formats";
 import { assertNoticeDateMapping } from "@/lib/lic/export-checks";
 import { assertPersonTables } from "@/lib/lic/person-tables";
 import { PDFDocument, StandardFonts } from "pdf-lib";
@@ -7,12 +8,12 @@ import { L, fullDetails, type ChangeItem, type Rec } from "@/lib/lic/changes";
 import type { Out } from "@/lib/lic/build";
 
 /** Notice-of-change branch of buildFiling in lic_filings.js, using the shared read-back filler. */
-export async function buildChange(d: Rec, sensitive: string[]): Promise<Out[]> {
+export async function buildChange(d: Rec, sensitive: string[], formats: DateFormats = parseDateFormats()): Promise<Out[]> {
   if (!fullDetails(sensitive)) throw new Error("The notice cannot be prepared because it contains personal or identity details your role cannot see.");
-  // The artifact labels Text43 DD/MM/YY but fills it through ddmmyyyy. Do not guess or deliver that mismatch.
-  assertNoticeDateMapping(d);
+  // The representative cessation date has no inherited format.
+  assertNoticeDateMapping(d, formats);
   assertPersonTables(d.people ?? []);
-  const store = { company: () => ({}), list: () => [], get: () => null, canSee: (s: string) => sensitive.includes(s) }, G = createGen(store);
+  const store = { company: () => ({}), list: () => [], get: () => null, canSee: (s: string) => sensitive.includes(s) }, formatDate = createDateFormatter(formats), G = createGen(store, formatDate);
   const items = (d.items ?? []) as ChangeItem[];
   if (!items.length) throw new Error("Add at least one change first.");
   const v: Rec = { Text373: d.licence_no, Text374: d.name, Text472: d.o3?.signer || d.signer }, labels: Rec = {};
@@ -28,11 +29,11 @@ export async function buildChange(d: Rec, sensitive: string[]): Promise<Out[]> {
         const parts = lines.length > 1 ? [lines[0], lines.slice(1).join("\n")] : [text];
         parts.forEach((s, i) => { const field = `Text${map[i][j]}`; v[field] = s; labels[field] = `Item ${code} - ${key}${i ? " (continued)" : ""}`; });
       }
-      if (it.date) v[`Text${map[0][2]}`] = L.ddmmyyyy(it.date);
+      if (it.date) v[`Text${map[0][2]}`] = formatDate("s3", `Text${map[0][2]}`, it.date);
     } else list.forEach((it, i) => {
       const row = map[i]; if (!row) throw new Error(`Item ${code}: the official form is full.`);
       for (const [key, j] of [["former", 0], ["new", 1], ["reason", 3]] as const) { const field = `Text${row[j]}`; v[field] = it[key]; labels[field] = `Item ${code} (${i + 1}) - ${key}`; }
-      if (it.date) v[`Text${row[2]}`] = L.ddmmyyyy(it.date);
+      if (it.date) v[`Text${row[2]}`] = formatDate("s3", `Text${row[2]}`, it.date);
     });
   }
   const out: Out[] = [], cont: [string, string][] = [];

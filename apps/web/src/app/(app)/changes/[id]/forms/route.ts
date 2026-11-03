@@ -1,3 +1,5 @@
+import { snapshotDateFormats } from "@/lib/lic/date-formats";
+import { loadDateFormats } from "@/lib/lic/date-format-store";
 import { markForm } from "@/lib/form-marks";
 import { assertChangeVisible } from "@/lib/lic/export-checks";
 import JSZip from "jszip";
@@ -16,12 +18,15 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       const final = row.snapshotId && !["Draft", "Ready for review"].includes(row.status);
       const snap = final ? await tx.filingSnapshot.findFirst({ where: { id: row.snapshotId!, filingId: id, organizationId: ctx.org.id } }) : null;
       if (final && !snap) throw new Error("The approved copy is missing.");
-      const raw = (snap?.body ?? row.data) as Rec;
+      const body = snap?.body as Rec | undefined;
+      const formats = snap ? snapshotDateFormats(body?.dateFormats) : await loadDateFormats(tx, ctx.org.id);
+      const raw = (body?.dateFormats !== undefined ? body.data : body ?? row.data) as Rec;
+      if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new Error("The approved copy could not be read.");
       assertChangeVisible(raw, ctx.sensitive);
-      return { d: stripChange(raw, ctx.sensitive), final: !!snap };
+      return { formats, d: stripChange(raw, ctx.sensitive), final: !!snap };
     });
     if (!result) return new Response("Not found", { status: 404 });
-    const out = await Promise.all((await buildChange(result.d, ctx.sensitive)).map(f => markForm(f, { approved: result.final, demo: ctx.org.isDemo }))), problems = out.flatMap((f) => f.check?.problems ?? []);
+    const out = await Promise.all((await buildChange(result.d, ctx.sensitive, result.formats)).map(f => markForm(f, { approved: result.final, demo: ctx.org.isDemo }))), problems = out.flatMap((f) => f.check?.problems ?? []);
     await withTenant(ctx.org.id, (tx) => audit(tx, { organizationId: ctx.org.id, actorId: ctx.user.id, actorEmail: ctx.user.email, action: "export", entityType: "filings", entityId: id, summary: `Prepared notice forms${result.final ? " from approved copy" : " (draft)"}; ${problems.length} read-back problem(s)` }));
     if (problems.length) return new Response(`The forms failed their read-back and were not downloaded.\n${problems.join("\n")}`, { status: 422 });
     const prefix = `${ctx.org.isDemo ? "DEMO_" : ""}${result.final ? "" : "DRAFT_"}`, zip = new JSZip();

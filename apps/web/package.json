@@ -13,7 +13,7 @@
     "test:reports": "tsx scripts/test-reports.ts",
     "test:plan-budget": "tsx scripts/test-plan-budget.ts",
     "test:lic": "tsx scripts/test-lic.ts",
-    "test:forms": "tsx scripts/test-forms.ts && tsx scripts/test-changes.ts && tsx scripts/test-lic-safety.ts && tsx scripts/test-form-marks.ts"
+    "test:forms": "tsx scripts/test-forms.ts && tsx scripts/test-changes.ts && tsx scripts/test-lic-safety.ts && tsx scripts/test-form-marks.ts && tsx scripts/test-date-formats.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.1",

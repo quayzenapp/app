@@ -1,3 +1,5 @@
+import { createDateFormatter, snapshotDateFormats, type DateFormats } from "@/lib/lic/date-formats";
+import { loadDateFormats } from "@/lib/lic/date-format-store";
 import { assertPersonTables } from "@/lib/lic/person-tables";
 import { assertPeopleVisible, hasStoredValue } from "@/lib/lic/export-checks";
 import { getForm } from "@/lib/forms";
@@ -22,7 +24,7 @@ export async function loadGen(ctx: TenantContext, id: string, key?: string) {
     const base = await loadReportStore(tx, ctx);
     const final = row.snapshotId && ![S.prep, S.ready, S.info].includes(row.status);
     const snap = final ? await tx.applicationSnapshot.findFirst({ where: { id: row.snapshotId!, organizationId: ctx.org.id } }) : null;
-    const body = snap?.body as { app: Rec; people: Rec[] } | undefined;
+    const body = snap?.body as { app: Rec; people: Rec[]; dateFormats?: DateFormats } | undefined;
     const people = body?.people ?? (await tx.applicationPerson.findMany({ where: { applicationId: id, organizationId: ctx.org.id }, orderBy: { createdAt: "asc" } })).map(toEnginePerson);
     if (!key || ["s1", "ds"].includes(key)) { assertPeopleVisible(people, ctx.sensitive); assertPersonTables(people); }
     // UBO declarations also read register data. Check the original values before loadReportStore's stripped copy is used.
@@ -31,9 +33,10 @@ export async function loadGen(ctx: TenantContext, id: string, key?: string) {
       const owners = await tx.record.findMany({ where: { organizationId: ctx.org.id, formKey: "ubo", archivedAt: null } });
       for (const owner of owners) for (const f of form?.fields ?? []) if (f.sensitive && !ctx.sensitive.includes(f.sensitive) && hasStoredValue((owner.data as Rec)[f.name])) throw new Error(`Cannot prepare the forms: restricted field "${f.name}" has a value your role cannot see.`);
     }
-    return { base, a: body?.app ?? toEngineApp(row), people: people.map((p) => stripPerson(p, ctx.sensitive)), final: !!snap };
+    const formats = snap ? snapshotDateFormats(body?.dateFormats) : await loadDateFormats(tx, ctx.org.id);
+    return { formats, base, a: body?.app ?? toEngineApp(row), people: people.map((p) => stripPerson(p, ctx.sensitive)), final: !!snap };
   });
   if (!data) return null;
   const store = { ...data.base, list: (t: string) => (t === "app_people" ? data.people : data.base.list(t)) };
-  return { state: { approved: data.final, demo: ctx.org.isDemo }, G: createGen(store), a: data.a, final: data.final, prefix: `${ctx.org.isDemo ? "DEMO_" : ""}${data.final ? "" : "DRAFT_"}` };
+  return { state: { approved: data.final, demo: ctx.org.isDemo }, G: createGen(store, createDateFormatter(data.formats)), a: data.a, final: data.final, prefix: `${ctx.org.isDemo ? "DEMO_" : ""}${data.final ? "" : "DRAFT_"}` };
 }

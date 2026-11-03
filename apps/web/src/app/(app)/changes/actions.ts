@@ -1,4 +1,6 @@
 "use server";
+import { freezeDateFormats } from "@/lib/lic/date-formats";
+import { loadDateFormats } from "@/lib/lic/date-format-store";
 import { assertPeopleVisible, assertNoticeDateMapping } from "@/lib/lic/export-checks";
 import { readPersonTable } from "@/lib/lic/person-tables";
 import { createHash, randomUUID } from "node:crypto";
@@ -117,13 +119,15 @@ export async function filingStatus(id: string, to: string, _s: State, f: FormDat
       if (!(CHANGE_NEXT[row.status] ?? []).includes(to)) throw new Error(`A filing that is ${row.status} cannot move to ${to}.`);
       let sid = row.snapshotId, note = clean(f, "note") ?? "";
       if (to === "Approved") {
-        assertNoticeDateMapping(d);
+        const dateFormats = freezeDateFormats(await loadDateFormats(tx, ctx.org.id));
+        assertNoticeDateMapping(d, dateFormats);
         assertDifferentPerson(separate, row.updatedById, ctx.user.id, "approve this filing");
         if (!fullDetails(ctx.sensitive)) throw new Error("Approval needs personal and identity access so the reviewer can check every field.");
         for (const spec of L.PERSON_SPEC as Rec[]) if (spec.sens && !ctx.sensitive.includes(spec.sens) && (d.people ?? []).some((p: Rec) => p[spec.k] != null)) throw new Error("Approval needs access to every restricted profile field.");
         const versionNo = await tx.filingSnapshot.count({ where: { organizationId: ctx.org.id, filingId: id } }) + 1;
-        const hash = createHash("sha256").update(JSON.stringify(d)).digest("hex");
-        const snap = await tx.filingSnapshot.create({ data: { organizationId: ctx.org.id, filingId: id, versionNo, body: J(d), hash, approvedById: ctx.user.id } });
+        const body = { data: d, dateFormats };
+        const hash = createHash("sha256").update(JSON.stringify(body)).digest("hex");
+        const snap = await tx.filingSnapshot.create({ data: { organizationId: ctx.org.id, filingId: id, versionNo, body: J(body), hash, approvedById: ctx.user.id } });
         sid = snap.id; note = `Approved copy ${versionNo}, fingerprint ${hash}`;
         await log(tx, ctx, id, "approve", note);
       }

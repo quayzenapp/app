@@ -1,4 +1,6 @@
 "use server";
+import { freezeDateFormats } from "@/lib/lic/date-formats";
+import { loadDateFormats } from "@/lib/lic/date-format-store";
 import { readPersonTable } from "@/lib/lic/person-tables";
 import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
@@ -216,7 +218,7 @@ export async function approveApplication(id: string, _s: State): Promise<State> 
       if (separate && people.some((p) => p.updatedById === ctx.user.id)) throw new Error("A different person must approve the application. You changed the people details in it.");
       const R = (await loadLic(tx, ctx)).appReadiness(toEngineApp(a));
       const gaps = R.steps.reduce((t: number, s: { missing: unknown[] }) => t + s.missing.length, 0) + (R.docs.total - R.docs.ok);
-      const body = { app: toEngineApp(a), people: people.map(toEnginePerson) };
+      const body = { app: toEngineApp(a), people: people.map(toEnginePerson), dateFormats: freezeDateFormats(await loadDateFormats(tx, ctx.org.id)) };
       const hash = createHash("sha256").update(JSON.stringify(body)).digest("hex");
       const versionNo = (await tx.applicationSnapshot.count({ where: { organizationId: ctx.org.id, applicationId: a.id } })) + 1;
       const snap = await tx.applicationSnapshot.create({ data: { organizationId: ctx.org.id, applicationId: a.id, versionNo, body: J(body), hash, gaps, approvedById: ctx.user.id } });

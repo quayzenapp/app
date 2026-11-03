@@ -1,3 +1,4 @@
+import { createDateFormatter, parseDateFormats, type DateFormats } from "@/lib/lic/date-formats";
 import { createLic } from "@/lib/lic/core";
 import { O3_SPEC } from "@/lib/lic/change-spec";
 import { fullDetails, o3Sensitivity, type Rec } from "@/lib/lic/changes";
@@ -25,7 +26,7 @@ export function assertChangeVisible(d: Rec, sensitive: string[]) {
   assertPeopleVisible(d.people ?? [], sensitive);
 }
 
-// The date-format decision is still open. Approval and download must enforce the same existing block.
-export function assertNoticeDateMapping(d: Rec) {
-  if (d.offshore && d.o3?.arc?.date) throw new Error("Offshore Form III: the representative cessation field asks for DD/MM/YY, but the artifact fills DD/MM/YYYY. This mapping needs review before a form using that date can be prepared.");
+/** Both approval and download require the explicit administrator choice for arc.date. */
+export function assertNoticeDateMapping(d: Rec, formats: DateFormats = parseDateFormats()) {
+  if (d.offshore && d.o3?.arc?.date) createDateFormatter(formats)("o3", "arc.date", d.o3.arc.date);
 }

@@ -1,4 +1,6 @@
 "use server";
+import { FORM_DATE_FIELDS, parseDateFormats } from "@/lib/lic/date-formats";
+import { loadDateFormats, setOrgControl } from "@/lib/lic/date-format-store";
 import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -210,9 +212,33 @@ export async function createForm(_s: ActionState, f: FormData): Promise<ActionSt
 export async function setSecondPerson(_s: ActionState, f: FormData): Promise<ActionState> {
   const ctx = await requireAdmin(); // always the organization currently selected and validated
   const on = f.get("value") === "on";
-  const org = await db.organization.findUniqueOrThrow({ where: { id: ctx.org.id } });
-  await db.organization.update({ where: { id: org.id }, data: { settings: { ...(org.settings as object), separateReviewer: on } } });
-  await log(ctx, org.id, "control", "settings", org.id, `Second-person check turned ${on ? "on" : "off"}`);
+  await withTenant(ctx.org.id, async tx => {
+    await setOrgControl(tx, ctx.org.id, "separateReviewer", on);
+    await audit(tx, { organizationId: ctx.org.id, actorId: ctx.user.id, actorEmail: ctx.user.email, action: "control", entityType: "settings", entityId: ctx.org.id, summary: `Second-person check turned ${on ? "on" : "off"}` });
+  });
   revalidatePath("/admin/settings");
   return { ok: `The second-person check is now ${on ? "on" : "off"}.` };
+}
+
+/** Official date controls always apply to the current validated organization. */
+export async function setOfficialDateFormats(_s: ActionState, f: FormData): Promise<ActionState> {
+  const ctx = await requireAdmin();
+  try {
+    const names = new Set(FORM_DATE_FIELDS.map(e => `dateFormat:${e.form}:${e.field}`));
+    for (const key of f.keys()) if (key.startsWith("dateFormat:") && (!names.has(key) || f.getAll(key).length !== 1)) throw new Error("An official form date field is invalid.");
+    if (f.getAll("defaultFormat").length !== 1) throw new Error("Choose the organization's default date format.");
+    const fields: Record<string, string> = {};
+    for (const entry of FORM_DATE_FIELDS) {
+      const value = String(f.get(`dateFormat:${entry.form}:${entry.field}`) ?? "");
+      if (value) fields[`${entry.form}.${entry.field}`] = value;
+    }
+    const formats = parseDateFormats({ defaultFormat: f.get("defaultFormat"), fields });
+    await withTenant(ctx.org.id, async tx => {
+      const before = await loadDateFormats(tx, ctx.org.id);
+      await setOrgControl(tx, ctx.org.id, "officialDateFormats", formats);
+      await audit(tx, { organizationId: ctx.org.id, actorId: ctx.user.id, actorEmail: ctx.user.email, action: "control", entityType: "settings", entityId: ctx.org.id, summary: "Official form date formats updated", before, after: formats });
+    });
+  } catch (error) { return { error: (error as Error).message }; }
+  revalidatePath("/admin/settings");
+  return { ok: "Official form date formats saved. Approved copies keep their stored formats." };
 }

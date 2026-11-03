@@ -22,8 +22,8 @@ async function run() {
   assert.equal(safe.items, undefined); assert.equal(safe.o3.appoint?.passport, undefined); assert.equal(safe.o3.appoint?.name, undefined); assert.equal(safe.people[0].id_no, undefined);
   console.log("PASS  Restricted fields stripped from nested offshore and person data, including free-text changes");
   await assert.rejects(() => buildChange(safe, []), /cannot see/);
-  await assert.rejects(() => buildChange({ ...data, o3: { arc: { date: "2026-10-03" } } }, access), /mapping needs review/);
-  console.log("PASS  Ambiguous representative cessation date mapping blocks delivery pending review");
+  await assert.rejects(() => buildChange({ ...data, o3: { arc: { date: "2026-10-03" } } }, access), /Admin > Controls/);
+  console.log("PASS  Unconfigured representative cessation date blocks delivery and points to Admin > Controls");
   const files = await buildChange(data, access);
   for (const file of files) assert.deepEqual(file.check?.problems ?? [], [], file.name);
   const s3 = files.find((f) => f.name.startsWith("Schedule_III"))!, pdf = await PDFDocument.load(await s3.blob.arrayBuffer()), form = pdf.getForm();

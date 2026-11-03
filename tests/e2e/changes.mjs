@@ -1,3 +1,4 @@
+import { testDateFormats } from "./date-formats.mjs";
 import { markedPack } from "./form-marks.mjs";
 import { testApplicationTables } from "./lic-tables.mjs";
 // Wait for the actual action response and committed UI, including repeated equal success messages.
@@ -94,10 +95,10 @@ export async function testChanges({ admin, reviewer, finance, other, adviser, ch
   let output = await pack(); check("notice draft pack includes original S3, offshore III and Schedule I profiles", Object.keys(output.z.files).some((n) => n.includes("Schedule_I_Part_III")) && Object.keys(output.z.files).some((n) => n.includes("Schedule_I_Part_V")) && Object.keys(output.z.files).some((n) => n.includes("Form_III_Offshore")) && Object.keys(output.z.files).filter((n) => n !== "READ_ME.txt").every((n) => n.startsWith("DEMO_DRAFT_")));
   await go(p, base); await p.fill('input[name="o3.arc.date"]', "2026-11-01"); await save(p);
   check("notice draft PDFs and profiles have DRAFT and DEMO on every page", await markedPack(output.z, "DRAFT / DEMO"));
-  r = await admin.ctx.request.get(BASE + base + "/forms"); check("ambiguous offshore cessation date refuses delivery pending review", r.status() === 422 && (await r.text()).includes("mapping needs review"));
+  r = await admin.ctx.request.get(BASE + base + "/forms"); check("unset offshore cessation date refuses delivery and points to Controls", r.status() === 422 && (await r.text()).includes("Admin > Controls"));
   await status(admin, "Mark ready for review", "Ready for review");
   await go(approvalPage, base); await approvalPage.click('summary:text-is("Approve")'); approvalPage.once("dialog", (d) => d.accept()); await approvalPage.click('button:text-is("Record Approved")'); await approvalPage.waitForSelector('details[open] .banner.bad');
-  check("blocked Form III date cannot be approved or reach submission", (await text(approvalPage)).includes("mapping needs review") && (await approvalPage.locator('.head .badge').innerText()) === "Ready for review" && !(await approvalPage.locator('summary:text-is("Record submission")').count()));
+  check("blocked Form III date cannot be approved or reach submission", (await text(approvalPage)).includes("Admin > Controls") && (await approvalPage.locator('.head .badge').innerText()) === "Ready for review" && !(await approvalPage.locator('summary:text-is("Record submission")').count()));
   await go(p, base); await p.fill('input[name="o3.arc.date"]', ""); await save(p);
   await go(p, base); await save(p); // Make the administrator the last editor before testing self-approval.
   await status(admin, "Mark ready for review", "Ready for review");
@@ -130,7 +131,7 @@ export async function testChanges({ admin, reviewer, finance, other, adviser, ch
   output = await pack(); const names = Object.keys(output.z.files); const s3 = await PDFDocument.load(await output.z.file(names.find((n) => n.includes("Schedule_III"))).async("uint8array"));
   check("approved notice PDFs keep DEMO on every page", await markedPack(output.z, "DEMO"));
   check("submitted form uses the approved copy without DRAFT", !output.r.headers()["content-disposition"].includes("DRAFT") && s3.getForm().getTextField("Text376").getText() === "Changed after approval");
-  await status(admin, "Record acknowledgement", "Acknowledged", "2026-11-03"); await status(admin, "Close", "Closed"); check("notice records acknowledgement and close", true); await approvalContext.close(); await hrContext.close();
+  await status(admin, "Record acknowledgement", "Acknowledged", "2026-11-03"); await status(admin, "Close", "Closed"); check("notice records acknowledgement and close", true); await testDateFormats({ admin, approver, finance, other, check, S }); await approvalContext.close(); await hrContext.close();
 }
 
 if (process.argv[1]?.endsWith("/changes.mjs")) {
