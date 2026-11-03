@@ -5,13 +5,15 @@ import { BUILD, loadGen, type, type Out } from "@/lib/lic/build";
 import { download, fileSafe } from "@/lib/report-export";
 import { can, getTenantContext } from "@/lib/tenant";
 
-/** Prepares a form for a person to check. Once approved it uses the fixed copy; before that the file is marked DRAFT. */
+/** Prepares a form for a person to check. Once approved it uses the fixed copy; before that the file name is prefixed DRAFT. */
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string; key: string }> }) {
   const { id, key } = await params;
   const ctx = await getTenantContext();
   if (!can(ctx, "licensing")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   if (!BUILD[key]) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  const g = await loadGen(ctx, id);
+  let g;
+  try { g = await loadGen(ctx, id, key); }
+  catch (e) { return new NextResponse((e as Error).message, { status: 422 }); }
   if (!g) return NextResponse.json({ error: "Not found" }, { status: 404 });
   let out: Out[];
   try { const r = await BUILD[key](g.G, g.a); out = Array.isArray(r) ? r : [r]; }

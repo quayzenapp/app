@@ -3,7 +3,9 @@ import { stripSensitive, type Form } from "@/lib/forms";
 import { S3_CAP, O3_SPEC } from "@/lib/lic/change-spec";
 
 export type Rec = Record<string, any>;
-export type ChangeItem = { code: string; former: string | null; new: string | null; date: string | null; reason: string | null };
+export type ChangeItem = { id?: string; code: string; former: string | null; new: string | null; date: string | null; reason: string | null };
+// Existing notices gain persisted IDs on their next successful edit.
+export const changeItemId = (item: ChangeItem, index: number) => item.id ?? `legacy-${index}`;
 export const L = createLic();
 export const CHANGE_NEXT: Record<string, string[]> = { Draft: ["Ready for review"], "Ready for review": ["Draft", "Approved"], Approved: ["Draft", "Submitted"], Submitted: ["Acknowledged"], Acknowledged: ["Closed"] };
 export const locked = (status: string) => ["Submitted", "Acknowledged", "Closed"].includes(status);

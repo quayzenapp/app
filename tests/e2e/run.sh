@@ -2,6 +2,18 @@
 # Browser tests against the running dev stack. Needs Docker; removes the data it creates.
 set -u
 cd "$(dirname "$0")"; mkdir -p shots; [ -d node_modules ] || npm i --silent
+export PGPASSWORD=quayzen_dev_owner
+psql -h localhost -p 5434 -U quayzen_owner quayzen -v ON_ERROR_STOP=1 -q <<'SQL'
+INSERT INTO applications (id, "organizationId", title, data, "updatedAt")
+SELECT 'e2e-legacy-table-app', id, 'E2E legacy table application', '{"legal":"General Partnership","p1":{"name":"E2E Legacy Partnership"}}', now() FROM organizations WHERE slug='demo-company'
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO application_people (id, "organizationId", "applicationId", data, "updatedAt")
+SELECT 'e2e-legacy-corporate', id, 'e2e-legacy-table-app', '{"name":"E2E Legacy Corporate","kind":"Corporate","roles":["Shareholder / member / partner / founder"],"shareholding_pct":50,"c_capital":"Legacy capital text"}', now() FROM organizations WHERE slug='demo-company'
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO application_people (id, "organizationId", "applicationId", data, "updatedAt")
+SELECT 'e2e-legacy-bank', id, 'e2e-legacy-table-app', '{"name":"E2E Legacy Bank","kind":"Individual","roles":["Shareholder / member / partner / founder"],"shareholding_pct":50,"banks":"Legacy private bank text"}', now() FROM organizations WHERE slug='demo-company'
+ON CONFLICT (id) DO NOTHING;
+SQL
 docker run --rm --network host --user "$(id -u)" -e HOME=/tmp -v "$PWD":/e2e -w /e2e mcr.microsoft.com/playwright:v1.48.2-jammy node "${1:-run}.mjs" /e2e/shots
 code=$?
 export PGPASSWORD=quayzen_dev_owner

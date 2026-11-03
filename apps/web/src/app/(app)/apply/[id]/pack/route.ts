@@ -11,7 +11,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params;
   const ctx = await getTenantContext();
   if (!can(ctx, "licensing")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  const g = await loadGen(ctx, id);
+  let g;
+  try { g = await loadGen(ctx, id); }
+  catch (e) { return new NextResponse((e as Error).message, { status: 422 }); }
   if (!g) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const zip = new JSZip(), inc: string[] = [], out: string[] = [];
   for (const [key, build] of Object.entries(BUILD)) {

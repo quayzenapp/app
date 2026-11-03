@@ -33,6 +33,8 @@ const firstText = admin.page.locator('input[name="p1.name"]');
 await firstText.fill("E2E Applicant Ltd");
 let t = await saved(admin.page); check("the step saves", t.includes("Saved"), t);
 await go(admin.page, base + "?step=applicant"); check("values persist", (await firstText.inputValue()) === "E2E Applicant Ltd");
+const fp = await finance.ctx.request.get(`${BASE}${base}/pack`), fz = await JSZip.loadAsync(await fp.body()), fr0 = await fz.file("READ_ME.txt").async("string");
+check("for a lower role the pack leaves out what it can't prepare, and says so", !Object.keys(fz.files).some((n) => n.includes("Schedule_I")) && fr0.includes("NOT included"), fr0.slice(0, 400));
 await go(admin.page, base + "?step=people&person=new"); await admin.page.waitForTimeout(800);
 await admin.page.selectOption('select[name="kind"]', "Individual"); await admin.page.fill('input[name="name"]', "E2E Person");
 await admin.page.check(`input[name="roles"][value^="Director"]`); await admin.page.check(`input[name="roles"][value^="Shareholder"]`);
@@ -64,8 +66,7 @@ await admin.page.screenshot({ path: `${S}/apply-overview.png` });
 const form = (s, k) => s.ctx.request.get(`${BASE}${base}/forms/${k}`);
 const pack = await admin.ctx.request.get(`${BASE}${base}/pack`), pz = await JSZip.loadAsync(await pack.body()), pn = Object.keys(pz.files);
 check("the pack holds the forms and a read-me, marked draft", pack.status() === 200 && pn.includes("READ_ME.txt") && pn.some((n) => n.includes("Schedule_I")) && pn.some((n) => n.includes("Technical_Evaluation")) && pn.filter((n) => n !== "READ_ME.txt").every((n) => n.startsWith("DEMO_DRAFT_")), pn.join());
-const fp = await finance.ctx.request.get(`${BASE}${base}/pack`), fz = await JSZip.loadAsync(await fp.body()), fr0 = await fz.file("READ_ME.txt").async("string");
-check("for a lower role the pack leaves out what it can't prepare, and says so", !Object.keys(fz.files).some((n) => n.includes("Schedule_I")) && fr0.includes("NOT included"), fr0.slice(0, 400));
+const deniedPack = await finance.ctx.request.get(`${BASE}${base}/pack`); check("application pack refuses populated restricted data instead of silently omitting it", deniedPack.status() === 422 && (await deniedPack.text()).includes("your role cannot see"));
 let fr = await form(admin, "s1");
 check("Schedule I downloads as a draft before approval", fr.status() === 200 && fr.headers()["content-disposition"].includes("DEMO_DRAFT_") && (await fr.body()).subarray(0, 4).toString() === "%PDF", `${fr.status()} ${fr.headers()["content-disposition"]}`);
 for (const [k, sig] of [["tef", "PK"], ["ap_decl", "PK"], ["ds", "PK"], ["bprofile", "PK"]]) { fr = await form(admin, k); check(`${k} downloads`, fr.status() === 200 && (await fr.body()).subarray(0, 2).toString() === sig, `${fr.status()} ${fr.status() === 200 ? "" : await fr.text()}`); }

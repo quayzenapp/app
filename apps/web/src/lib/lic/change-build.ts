@@ -1,3 +1,5 @@
+import { assertNoticeDateMapping } from "@/lib/lic/export-checks";
+import { assertPersonTables } from "@/lib/lic/person-tables";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 import { createGen } from "@/lib/lic/gen";
 import { S3_MAP, S3_CAP, O3_SPEC } from "@/lib/lic/change-spec";
@@ -8,7 +10,8 @@ import type { Out } from "@/lib/lic/build";
 export async function buildChange(d: Rec, sensitive: string[]): Promise<Out[]> {
   if (!fullDetails(sensitive)) throw new Error("The notice cannot be prepared because it contains personal or identity details your role cannot see.");
   // The artifact labels Text43 DD/MM/YY but fills it through ddmmyyyy. Do not guess or deliver that mismatch.
-  if (d.offshore && d.o3?.arc?.date) throw new Error("Offshore Form III: the representative cessation field asks for DD/MM/YY, but the artifact fills DD/MM/YYYY. This mapping needs review before a form using that date can be prepared.");
+  assertNoticeDateMapping(d);
+  assertPersonTables(d.people ?? []);
   const store = { company: () => ({}), list: () => [], get: () => null, canSee: (s: string) => sensitive.includes(s) }, G = createGen(store);
   const items = (d.items ?? []) as ChangeItem[];
   if (!items.length) throw new Error("Add at least one change first.");

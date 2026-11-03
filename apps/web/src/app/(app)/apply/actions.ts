@@ -1,4 +1,5 @@
 "use server";
+import { readPersonTable } from "@/lib/lic/person-tables";
 import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -106,7 +107,8 @@ export async function savePerson(id: string, personId: string | null, _s: State,
         if (L.MARKS.includes(m)) { d.marks[s.k] = m; continue; }
         delete d.marks[s.k];
         let v: unknown;
-        if (s.t === "multi") v = f.getAll(s.k).map(String);
+        if (s.t === "rows") v = readPersonTable(s.k, f, d[s.k]);
+        else if (s.t === "multi") v = f.getAll(s.k).map(String);
         else { v = clean(f.get(s.k)); if (s.t === "num" && v != null) v = toNum(String(v), s.l); }
         d[s.k] = v;
       }

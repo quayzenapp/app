@@ -6,9 +6,10 @@ import type { ActionState } from "@/app/admin/actions";
  * React resets a form after its action finishes, even when validation failed, which wipes what the person typed.
  * This submits by hand, so input survives an error, and clears only on success. `action` stays for submits before hydration.
  */
-export function useFormKeepingInput(run: (f: FormData) => void, success: unknown, ask?: string) {
+export function useFormKeepingInput(run: (f: FormData) => void, result: { ok?: string } | null, ask?: string) {
   const ref = useRef<HTMLFormElement>(null);
-  useEffect(() => { if (success) ref.current?.reset(); }, [success]);
+  // Depend on the action result, not its message: two successful saves can both say "Saved.".
+  useEffect(() => { if (result?.ok) ref.current?.reset(); }, [result]);
   const onSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (ask && !window.confirm(ask)) return;
@@ -21,7 +22,7 @@ export function useFormKeepingInput(run: (f: FormData) => void, success: unknown
 /** A form whose server action reports success or an error inline. */
 export function ActionForm({ action, children, className, submit, confirm: ask }: { action: (s: ActionState, f: FormData) => Promise<ActionState>; children?: React.ReactNode; className?: string; submit: string; confirm?: string }) {
   const [state, run, pending] = useActionState(action, {});
-  const { ref, onSubmit } = useFormKeepingInput(run, state.ok, ask);
+  const { ref, onSubmit } = useFormKeepingInput(run, state, ask);
   return (
     <form ref={ref} action={run} className={className} onSubmit={onSubmit}>
       {children}

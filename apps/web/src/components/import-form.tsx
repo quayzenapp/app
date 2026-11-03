@@ -5,7 +5,7 @@ import type { ImportState } from "@/app/(app)/r/[form]/import/actions";
 
 export function ImportForm({ action, templateHref }: { action: (s: ImportState, f: FormData) => Promise<ImportState>; templateHref: string }) {
   const [s, run, pending] = useActionState(action, {});
-  const { ref, onSubmit } = useFormKeepingInput(run, s.ok);
+  const { ref, onSubmit } = useFormKeepingInput(run, s);
   return (
     <details className="card"><summary>Import from Excel</summary>
       <form ref={ref} action={run} onSubmit={onSubmit} className="row"><input type="file" name="file" accept=".xlsx" aria-label="Excel file" /><button className="btn sm" disabled={pending}>{pending ? "Importing…" : "Import"}</button><a className="btn sm" href={templateHref}>Download the template</a></form>

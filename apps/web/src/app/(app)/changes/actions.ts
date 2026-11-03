@@ -1,4 +1,6 @@
 "use server";
+import { assertPeopleVisible, assertNoticeDateMapping } from "@/lib/lic/export-checks";
+import { readPersonTable } from "@/lib/lic/person-tables";
 import { createHash, randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -6,7 +8,7 @@ import { audit, withTenant, type Tx } from "@/lib/db";
 import { assertDifferentPerson, secondPersonRequired } from "@/lib/controls";
 import { can, getTenantContext, type TenantContext } from "@/lib/tenant";
 import { hiddenPersonKeys } from "@/lib/lic/store";
-import { L, fullDetails, locked, CHANGE_NEXT, changeDue, validateItems, o3Sensitivity, validDate, type Rec, type ChangeItem } from "@/lib/lic/changes";
+import { L, changeItemId, fullDetails, locked, CHANGE_NEXT, changeDue, validateItems, o3Sensitivity, validDate, type Rec, type ChangeItem } from "@/lib/lic/changes";
 import { O3_SPEC } from "@/lib/lic/change-spec";
 import { loadReportStore } from "@/lib/reports/store";
 import type { Prisma } from "@/generated/prisma/client";
@@ -33,11 +35,11 @@ export async function startChange(_s: State, f: FormData): Promise<State> {
   });
   redirect(`/changes/${id}`);
 }
-async function edit(id: string, ctx: TenantContext, apply: (d: Rec, f: FormData) => void, f: FormData): Promise<State> {
+async function edit(id: string, ctx: TenantContext, apply: (d: Rec, f: FormData, tx: Tx) => void | Promise<void>, f: FormData): Promise<State> {
   try {
     await withTenant(ctx.org.id, async (tx) => {
       const row = await load(tx, ctx, id); if (locked(row.status)) throw new Error("This filing has been submitted, so it is locked.");
-      const d = structuredClone(row.data) as Rec; apply(d, f);
+      const d = structuredClone(row.data) as Rec; await apply(d, f, tx);
       const reset = row.status !== "Draft";
       await tx.licenceFiling.update({ where: { id, organizationId: ctx.org.id }, data: { data: J(d), dueDate: changeDue(d.items ?? []), updatedById: ctx.user.id, ...(reset ? { status: "Draft", snapshotId: null, events: J([...(row.events as object[]), event(ctx, "Draft", "Changed after review; approval must be repeated.")]) } : {}) } });
       await log(tx, ctx, id, "update", `Notice of change updated${reset ? "; returned to Draft" : ""}`);
@@ -51,8 +53,14 @@ export async function saveChange(id: string, _s: State, f: FormData): Promise<St
     d.name = clean(f, "name"); d.licence_no = clean(f, "licence_no");
     if (fullDetails(ctx.sensitive)) {
       const prev = (d.items ?? []) as ChangeItem[];
-      const items = prev.flatMap((item, i) => f.get(`remove:${i}`) ? [] : [{ code: item.code, former: clean(f, `i.${i}.former`), new: clean(f, `i.${i}.new`), date: clean(f, `i.${i}.date`), reason: clean(f, `i.${i}.reason`) }]);
-      const add = clean(f, "newcode"); if (add) items.push({ code: add, former: null, new: null, date: null, reason: null });
+      const ids = f.getAll("__item").map(String);
+      const byId = new Map(prev.map((item, i) => [changeItemId(item, i), item]));
+      if (ids.length !== prev.length || new Set(ids).size !== ids.length || ids.some((key) => !byId.has(key))) throw new Error("The notice rows changed. Reload the notice before saving.");
+      const items = ids.flatMap((key, i) => {
+        const item = byId.get(key)!;
+        return f.get(`remove:${i}`) ? [] : [{ id: item.id ?? randomUUID(), code: item.code, former: clean(f, `i.${i}.former`), new: clean(f, `i.${i}.new`), date: clean(f, `i.${i}.date`), reason: clean(f, `i.${i}.reason`) }];
+      });
+      const add = clean(f, "newcode"); if (add) items.push({ id: randomUUID(), code: add, former: null, new: null, date: null, reason: null });
       validateItems(items); d.items = items;
       d.signer = clean(f, "signer"); d.offshore = f.get("offshore") === "1";
     }
@@ -76,7 +84,7 @@ export async function saveFilingPerson(id: string, personId: string | null, _s: 
       if (hidden.includes(s.k) || !seen.has(s.k)) continue;
       let v: unknown = s.t === "multi" ? f.getAll(s.k).map(String) : clean(f, s.k);
       if (s.t === "num" && v != null) { v = Number(String(v).replace(/,/g, "")); if (!Number.isFinite(v)) throw new Error(`${s.l}: please enter a number.`); }
-      if (s.t === "rows") v = Array.from({ length: s.rows ?? 1 }, (_, i) => Object.fromEntries((s.cols as [string, string][]).map(([k]) => [k, clean(f, `${s.k}.${i}.${k}`)]))).filter((r) => Object.values(r).some(Boolean));
+      if (s.t === "rows") v = readPersonTable(s.k, f, p[s.k]);
       p.marks = { ...(p.marks ?? {}) };
       const mark = String(f.get(`mark:${s.k}`) ?? "");
       if (L.MARKS.includes(mark)) { p.marks[s.k] = mark; continue; }
@@ -89,6 +97,17 @@ export async function saveFilingPerson(id: string, personId: string | null, _s: 
   if (result.error) return result;
   redirect(`/changes/${id}`);
 }
+export async function removeFilingPerson(id: string, personId: string, _s: State, f: FormData): Promise<State> {
+  const ctx = await guard();
+  return edit(id, ctx, async (d, _form, tx) => {
+    const person = (d.people ?? []).find((p: Rec) => p.id === personId);
+    if (!person) throw new Error("This person no longer exists.");
+    try { assertPeopleVisible([person], ctx.sensitive); }
+    catch { throw new Error("Cannot remove this person: restricted fields have values your role cannot see."); }
+    d.people = d.people.filter((p: Rec) => p.id !== personId);
+    await log(tx, ctx, id, "delete", "Person removed from notice");
+  }, f);
+}
 export async function filingStatus(id: string, to: string, _s: State, f: FormData): Promise<State> {
   const ctx = await guard(to === "Approved" ? "approve" : "write");
   try {
@@ -98,6 +117,7 @@ export async function filingStatus(id: string, to: string, _s: State, f: FormDat
       if (!(CHANGE_NEXT[row.status] ?? []).includes(to)) throw new Error(`A filing that is ${row.status} cannot move to ${to}.`);
       let sid = row.snapshotId, note = clean(f, "note") ?? "";
       if (to === "Approved") {
+        assertNoticeDateMapping(d);
         assertDifferentPerson(separate, row.updatedById, ctx.user.id, "approve this filing");
         if (!fullDetails(ctx.sensitive)) throw new Error("Approval needs personal and identity access so the reviewer can check every field.");
         for (const spec of L.PERSON_SPEC as Rec[]) if (spec.sens && !ctx.sensitive.includes(spec.sens) && (d.people ?? []).some((p: Rec) => p[spec.k] != null)) throw new Error("Approval needs access to every restricted profile field.");

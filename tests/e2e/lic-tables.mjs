@@ -1,0 +1,50 @@
+import JSZip from "jszip";
+import { PDFDocument } from "pdf-lib";
+export async function testApplicationTables({ admin, hr, other, check, S }) {
+  const BASE = "http://localhost:3000", p = admin.page;
+  const go = async (s, path) => { await s.page.goto(BASE + path, { waitUntil: "networkidle" }); await s.page.waitForTimeout(500); };
+  const savePerson = async () => { await p.click('button:text-is("Save")'); await p.waitForURL(/step=people$/); await p.waitForLoadState("networkidle"); };
+  await go(admin, "/apply"); await p.selectOption('select[name="app_type"]', "Authorised Person only"); await p.fill('input[name="title"]', `E2E table application ${Date.now()}`); await p.click('button:text-is("Start")'); await p.waitForURL(/\/apply\/[^/?]+\?step=applicant$/); await p.waitForLoadState("networkidle"); await p.waitForTimeout(600);
+  const base = p.url().replace(BASE, "").split("?")[0];
+  await p.selectOption('select[name="origin"]', "Foreign"); await p.selectOption('select[name="legal"]', "General Partnership"); await p.fill('input[name="p1.name"]', "E2E Tables Partnership"); await p.click('button:text-is("Save")'); await p.waitForSelector('form .banner.info');
+  await go(admin, base + "?step=people&person=new"); await p.selectOption('select[name="kind"]', "Corporate"); await p.fill('input[name="name"]', "E2E Corporate Table Member"); await p.check('input[name="roles"][value^="Shareholder"]'); await p.fill('input[name="shareholding_pct"]', "50");
+  for (const [name, value] of Object.entries({ 'c_capital.0.year': "2025", 'c_capital.0.capital': "USD 1000", 'c_perf.0.year': "2025", 'c_perf.0.assets': "USD 2000", 'c_holders.0.name': "Parent Holder", 'c_board.0.name': "Board Member" })) await p.fill(`input[name="${name}"]`, value);
+  await p.screenshot({ path: `${S}/apply-corporate-tables.png`, fullPage: true }); await savePerson();
+  const corporate = await p.locator('a:text-is("E2E Corporate Table Member")').getAttribute("href"); await go(admin, corporate);
+  check("Apply corporate tables persist as editable rows", (await p.inputValue('input[name="c_capital.0.capital"]')) === "USD 1000" && (await p.inputValue('input[name="c_board.0.name"]')) === "Board Member");
+  await go(admin, base + "?step=people&person=new"); await p.selectOption('select[name="kind"]', "Individual"); await p.fill('input[name="name"]', "E2E Bank Table Member"); await p.check('input[name="roles"][value^="Shareholder"]'); await p.fill('input[name="shareholding_pct"]', "50");
+  for (const [name, value] of Object.entries({ 'banks.0.bank': "E2E PRIVATE BANK", 'banks.0.type': "Deposit", 'banks.0.date': "2026-10-01", 'banks.0.amount': "USD 500", 'cv_edu.0.type': "Degree", 'cv_edu.0.inst': "Example University", 'cv_edu.0.year': "2020", 'cv_prof.0.type': "Certification", 'cv_memb.0.type': "Membership", 'cv_work.0.employer': "Example Employer", 'cv_dirs.0.company': "Example Directorship" })) await p.fill(`input[name="${name}"]`, value);
+  await savePerson(); const individual = await p.locator('a:text-is("E2E Bank Table Member")').getAttribute("href");
+  await go(hr, individual); check("HR direct Apply person URL hides bank rows and values", !(await hr.page.content()).includes("E2E PRIVATE BANK") && !(await hr.page.locator('input[name="banks.0.bank"]').count()));
+  await go(admin, individual); await p.fill('input[name="name"]', ""); await p.click('button:text-is("Save")'); await p.waitForSelector('form .banner.bad');
+  check("person validation error preserves entered tables", (await p.inputValue('input[name="banks.0.bank"]')) === "E2E PRIVATE BANK" && (await p.inputValue('input[name="cv_edu.0.type"]')) === "Degree");
+  await p.fill('input[name="name"]', "E2E Bank Table Member");
+  const personRequest = p.waitForRequest((req) => req.method() === "POST" && req.headers()["next-action"]);
+  await savePerson(); const capturedPerson = await personRequest;
+  const forged = await hr.ctx.request.post(capturedPerson.url(), { headers: { "next-action": capturedPerson.headers()["next-action"], "content-type": capturedPerson.headers()["content-type"], origin: BASE }, data: capturedPerson.postDataBuffer(), maxRedirects: 0 });
+  check("HR cannot invoke an Apply person save with restricted table input", (forged.headers()["x-action-redirect"] ?? forged.headers()["location"] ?? "").includes("forbidden"));
+  await go(admin, individual); check("refused HR save preserves the stored bank array", (await p.inputValue('input[name="banks.0.bank"]')) === "E2E PRIVATE BANK");
+  const r = await admin.ctx.request.get(BASE + base + "/forms/s1");
+  if (r.status() !== 200) throw new Error(await r.text());
+  const files = r.headers()["content-type"].includes("zip") ? Object.values((await JSZip.loadAsync(await r.body())).files).filter((x) => x.name.endsWith(".pdf")) : [{ async: async () => r.body() }];
+  const forms = []; for (const file of files) forms.push((await PDFDocument.load(await file.async("uint8array"))).getForm());
+  const main = forms.find((f) => f.getTextField("Text26").getText() === "USD 1000");
+  const bank = forms.find((f) => f.getTextField("Text233").getText() === "E2E PRIVATE BANK");
+  check("Apply entered corporate tables read back from original Schedule I PDF", r.status() === 200 && !!main && main.getTextField("Text40").getText() === "USD 2000" && main.getTextField("Text160").getText() === "Parent Holder" && main.getTextField("Text199").getText() === "Board Member");
+  check("Apply bank and CV rows read back from original Schedule I PDF", !!bank && bank.getTextField("Text236").getText() === "USD 500" && bank.getTextField("Text254").getText() === "Degree" && bank.getTextField("Text255").getText() === "Example University");
+  for (const path of ["/forms/s1", "/pack"]) { const blocked = await hr.ctx.request.get(BASE + base + path), message = await blocked.text(); check(`HR Apply ${path} refuses hidden bank data without disclosing it`, blocked.status() === 422 && message.includes("banks") && !message.includes("E2E PRIVATE BANK")); }
+  const cross = await other.ctx.request.get(BASE + base + "/forms/s1"); check("another tenant cannot download table-filled Apply forms", cross.status() === 404);
+  // Fixtures deliberately model data saved by the previous string-based editor.
+  const legacy = "/apply/e2e-legacy-table-app";
+  await go(admin, legacy + "?step=people&person=e2e-legacy-corporate");
+  check("legacy table editor names the bad field and asks for re-entry", (await p.locator('body').innerText()).includes('Field "c_capital"') && (await p.inputValue('textarea[aria-label="Previously saved c_capital"]')) === "Legacy capital text");
+  let blocked = await admin.ctx.request.get(BASE + legacy + "/forms/s1"); check("legacy table export is refused with field name and re-entry message", blocked.status() === 422 && (await blocked.text()).includes('Field "c_capital"'));
+  await p.fill('input[name="c_capital.0.capital"]', "USD 1234"); await p.click('button:text-is("Save")'); await p.waitForSelector('form .banner.bad');
+  check("legacy string cannot be silently overwritten without confirmation", (await p.locator('form .banner.bad').innerText()).includes("re-enter") && (await p.inputValue('input[name="c_capital.0.capital"]')) === "USD 1234");
+  await p.check('input[name="replace:c_capital"]'); await savePerson();
+  await go(hr, legacy + "?step=people&person=e2e-legacy-bank"); check("HR legacy editor exposes neither bank data nor Save", !(await hr.page.content()).includes("Legacy private bank text") && !(await hr.page.locator('button:text-is("Save")').count()));
+  await go(admin, legacy + "?step=people&person=e2e-legacy-bank");
+  check("opening the lower-role editor preserves a hidden legacy bank value", (await p.inputValue('textarea[aria-label="Previously saved banks"]')) === "Legacy private bank text");
+  await p.fill('input[name="banks.0.bank"]', "Re-entered Bank"); await p.check('input[name="replace:banks"]'); await savePerson();
+  blocked = await admin.ctx.request.get(BASE + legacy + "/forms/s1"); check("explicit re-entry repairs legacy tables and permits complete generation", blocked.status() === 200);
+}
