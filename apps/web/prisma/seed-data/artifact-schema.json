@@ -1,0 +1,2236 @@
+{
+ "LOOKUPS": {
+  "designation_types": [
+   "Authorised Person only",
+   "Primary BSI",
+   "Secondary BSI",
+   "Duty Free BSI"
+  ],
+  "legalforms": [
+   "Private Company with Limited Liability",
+   "Public Company with Limited Liability",
+   "Company Limited by Guarantee",
+   "Offshore Company",
+   "Branch of an Overseas Company",
+   "Partnership",
+   "Other"
+  ],
+  "request_statuses": [
+   "New",
+   "In Progress",
+   "Under Review",
+   "Approved",
+   "Submitted",
+   "Closed"
+  ],
+  "request_categories": [
+   "Annual return",
+   "Employee information",
+   "Investment and FDI",
+   "Office space and location",
+   "Licence and approvals",
+   "Business plan update",
+   "Beneficial ownership",
+   "General information"
+  ],
+  "staff_categories": [
+   "Management",
+   "Professional",
+   "Technical",
+   "Administrative",
+   "Support"
+  ],
+  "employment_types": [
+   "Full-time permanent",
+   "Fixed-term contract",
+   "Part-time",
+   "Secondment",
+   "Internship"
+  ],
+  "fund_relationships": [
+   "Parent company",
+   "Shareholder",
+   "Group entity",
+   "Unrelated investor",
+   "Customer",
+   "Bank or lender",
+   "The company itself (retained profits)",
+   "Other"
+  ],
+  "fund_classes": [
+   "Pending review",
+   "Equity investment",
+   "Reinvested earnings",
+   "Intra-company debt",
+   "Other investment",
+   "Service revenue or customer receipt",
+   "Other funding"
+  ],
+  "ar_categories": [
+   "Revenue",
+   "Capital expenditure",
+   "Basic remuneration",
+   "Allowance payments",
+   "Bonus payments",
+   "Staff accommodation",
+   "Health insurance",
+   "Transportation",
+   "Office rent",
+   "Other staff benefits",
+   "Other operational expenditure",
+   "EPF payment",
+   "ETF payment",
+   "Gratuity payment"
+  ],
+  "licence_types": [
+   "Authorised Person licence",
+   "BSI designation",
+   "Designated location approval",
+   "Regulatory licence (other authority)",
+   "Agreement",
+   "Gazette or regulation",
+   "Other approval"
+  ],
+  "obligation_types": [
+   "Licence condition",
+   "Agreement condition",
+   "Law or regulation",
+   "Commission request",
+   "BSI performance indicator (KPI)",
+   "Investment commitment",
+   "Employment commitment",
+   "Reporting deadline",
+   "Business plan projection",
+   "Internal control"
+  ],
+  "visa_categories": [
+   "Residence visa - Port City Colombo (PCC residence)",
+   "Residence visa - Port City Colombo (PCC business)",
+   "Residence visa - Employee",
+   "Residence visa - Investor",
+   "Business visa",
+   "Dependant visa",
+   "Other (record details in notes)"
+  ],
+  "visa_statuses": [
+   "Not started",
+   "Documents being prepared",
+   "Submitted through the Commission",
+   "Submitted to Department of Immigration and Emigration",
+   "Approved",
+   "Rejected",
+   "Expired",
+   "Cancelled"
+  ],
+  "document_categories": [
+   "Application documents",
+   "Business plans",
+   "AP and BSI approvals",
+   "Annual returns",
+   "Commission requests and responses",
+   "Audited financial statements",
+   "UBO declarations",
+   "ROC filings",
+   "Investment evidence",
+   "Office agreements",
+   "Visa and permit documents",
+   "Board resolutions",
+   "Constitutional documents",
+   "Passports and IDs",
+   "Other"
+  ]
+ },
+ "ROLES": {
+  "admin": "Administrator",
+  "compliance": "Compliance / administration officer",
+  "hr": "HR user",
+  "finance": "Finance user",
+  "reviewer": "Management reviewer",
+  "adviser": "External adviser (limited)"
+ },
+ "MODULES": [
+  "dashboard",
+  "company",
+  "bplan",
+  "requests",
+  "workforce",
+  "investment",
+  "offices",
+  "returns",
+  "obligations",
+  "visas",
+  "documents",
+  "reports",
+  "settings",
+  "audit",
+  "budget",
+  "licensing",
+  "development",
+  "checklists"
+ ],
+ "PERM_CODES": {
+  "admin": "aaaaaaaaaaaaaaaaaa",
+  "compliance": "rwwwrrwwwwwrrrrwww",
+  "hr": "rrrwwnwrrwwrnnnrrw",
+  "finance": "rrwwrawwrnwrrnawww",
+  "reviewer": "rraararaarrrrraaaa",
+  "adviser": "rrrrnrrrrnrrnnrrrr"
+ },
+ "SENSITIVE_ACCESS": {
+  "admin": [
+   "personal",
+   "id",
+   "pay",
+   "ubo",
+   "bank"
+  ],
+  "compliance": [
+   "personal",
+   "id",
+   "ubo",
+   "bank"
+  ],
+  "hr": [
+   "personal",
+   "id",
+   "pay"
+  ],
+  "finance": [
+   "pay",
+   "bank"
+  ],
+  "reviewer": [
+   "personal",
+   "pay",
+   "ubo",
+   "bank"
+  ],
+  "adviser": []
+ },
+ "SENSITIVE_LABELS": {
+  "personal": "Names and personal details",
+  "id": "Passport and identity details",
+  "pay": "Individual pay",
+  "ubo": "Beneficial ownership details",
+  "bank": "Bank and payment references"
+ },
+ "OBLIGATION_LIBRARY": [
+  [
+   "Submit the Annual Return when requested by the Commission",
+   "Reporting deadline",
+   "Annual Return Submission Form 2026",
+   "All Authorised Persons asked to submit",
+   "Annually",
+   "Confirm the due date given in the Commission's request."
+  ],
+  [
+   "Pay the annual licence renewal fee two months before expiry",
+   "Law or regulation",
+   "Fees Regulations No. 2 of 2024, items 04-06 (Gazette 2387/38)",
+   "All licensed APs",
+   "Annually",
+   "Amount depends on licence type."
+  ],
+  [
+   "File tax returns under the Inland Revenue Act",
+   "Law or regulation",
+   "Section 52C, inserted by Amendment Act No. 1 of 2026",
+   "All Authorised Persons",
+   "Annually",
+   "Confirm filing dates with the tax adviser."
+  ],
+  [
+   "Obtain and keep other regulatory licences before starting regulated activities",
+   "Agreement condition",
+   "Annexure I - AP Declaration",
+   "Companies with regulated activities",
+   "One-off",
+   "Only if an activity is regulated under other law."
+  ],
+  [
+   "Do not relocate Sri Lankan business into Port City without prior approval",
+   "Agreement condition",
+   "Annexure I - AP Declaration",
+   "Applicants who signed the declaration",
+   "One-off",
+   ""
+  ],
+  [
+   "Earn more than half of revenue from persons other than Sri Lankan residents (if authorised to deal with residents)",
+   "Law or regulation",
+   "Regulations No. 1 of 2023, reg. 7(b) (Gazette 2339/31)",
+   "Only APs authorised under reg. 6",
+   "Annually",
+   "Check whether the company holds such an authorisation."
+  ],
+  [
+   "Review position of designated location outside Port City",
+   "Law or regulation",
+   "Act s. 64; Regulations No. 1 of 2023, reg. 15 (Gazette 2339/31)",
+   "APs operating from a designated location outside Port City",
+   "One-off",
+   "Reg. 15 allowed this up to 26 May 2026. Confirm the current position."
+  ],
+  [
+   "Meet approved BSI key performance indicators",
+   "BSI performance indicator (KPI)",
+   "Sections 52A-52B, inserted by Amendment Act No. 1 of 2026",
+   "Businesses of Strategic Importance only",
+   "Annually",
+   "Record the KPIs stated in your own BSI approval."
+  ],
+  [
+   "Keep beneficial ownership information up to date",
+   "Reporting deadline",
+   "Annual Return Form 2026 (supporting document 2); Form_UBO",
+   "All APs",
+   "Annually",
+   ""
+  ],
+  [
+   "Seek adviser review of staff income tax treatment",
+   "Law or regulation",
+   "Section 35 as replaced by Amendment Act No. 1 of 2026",
+   "All APs with employees",
+   "One-off",
+   "The system records licence dates only; tax advice is needed."
+  ]
+ ],
+ "LEGAL_REFS": [
+  [
+   "CPCEC Act No. 11 of 2021",
+   "2021-05-27",
+   "AP registration and licensing (Part VI); licence validity and conditions (s. 31); single window for visas (s. 33); BSI (s. 52); designated locations (s. 64)."
+  ],
+  [
+   "CPCEC (Amendment) Act No. 1 of 2026",
+   "2026-01-20",
+   "Replaced s. 35 (staff employment and income tax - for adviser review); s. 52A-52E (BSI KPI monitoring, every AP files tax returns); offshore banking."
+  ],
+  [
+   "AP Engaged in Business Regulations No. 1 of 2023 (Gazette 2339/31)",
+   "2023-07-07",
+   "LKR payments; business with Sri Lankan residents; interim designated locations up to 26 May 2026."
+  ],
+  [
+   "Fees Regulations No. 2 of 2024 (Gazette 2387/38)",
+   "2024-06-05",
+   "Processing fees and annual renewal fees payable two months before expiry."
+  ],
+  [
+   "Immigrants and Emigrants Regulations amendment (Gazette 2360/24)",
+   "2023-11-07",
+   "Visa types including Port City Colombo (PCC) residence / business."
+  ],
+  [
+   "Duty Free BSI Guidelines (Gazettes 2381/24, 2475/28)",
+   "2024-04-22",
+   "Duty-free BSI only."
+  ],
+  [
+   "Offshore Banking Regulations (Gazettes 2394/66, 2394/67)",
+   "2024-07-26",
+   "Offshore banking only."
+  ],
+  [
+   "Registration of Offshore Companies Regulations No. 1 of 2022 (Gazette 2306/54)",
+   "2022-11-16",
+   "Offshore company registration."
+  ],
+  [
+   "Development Control Regulations and amendments (Gazettes 2334/47, 2358/70, 2469/02)",
+   "2023-06-02",
+   "Planning within Port City."
+  ],
+  [
+   "Community Rules No. 1 of 2025 (Gazette 2466/27)",
+   "2025-12-11",
+   "Owners and occupiers in Port City."
+  ],
+  [
+   "Condominium Property Regulations No. 3 of 2024 (Gazette 2394/68)",
+   "2024-07-26",
+   "Condominium management."
+  ],
+  [
+   "Foreign Exchange (Investments in Port City) Regulations No. 1 of 2022 (Gazette 2282/59)",
+   "2022-05-31",
+   "Foreign exchange permission for Port City investments."
+  ]
+ ],
+ "RESPONSE_TEMPLATES": [
+  [
+   "Employee information response",
+   "Employee information",
+   "Dear Sir / Madam,\n\nRe: Employee information - {company_name} (Licence {licence_number})\n\nFurther to your request, please find attached the requested information on our employees as at {as_at}, covering job titles and nationalities, minimum qualifications and experience for each position, language requirements, accommodation, health insurance, travel and relocation, and other benefits.\n\nPlease let us know if you need anything further.\n\nYours faithfully,\n\n{signatory}\n{company_name}"
+  ],
+  [
+   "Cover note - annual return",
+   "Annual return",
+   "Dear Sir / Madam,\n\nRe: Annual Return - {company_name} (Licence {licence_number})\n\nPlease find attached our completed Annual Return in the original fillable PDF format, together with the supporting documents listed in the form.\n\nYours faithfully,\n\n{signatory}\n{company_name}"
+  ],
+  [
+   "General acknowledgement",
+   "General information",
+   "Dear {contact_name},\n\nThank you for your request dated [date]. We are gathering the information and will respond by [date].\n\nKind regards,\n\n{signatory}\n{company_name}"
+  ]
+ ],
+ "BP_SECTIONS": [
+  [
+   "background",
+   "Company background",
+   "Who the company is, where incorporated, group structure."
+  ],
+  [
+   "ownership",
+   "Shareholders and directors",
+   "Ownership and management."
+  ],
+  [
+   "activities",
+   "Business activities and services",
+   "What the company will do from Port City."
+  ],
+  [
+   "operating_model",
+   "Operating model",
+   "How the business will operate."
+  ],
+  [
+   "customers",
+   "Target customers and markets",
+   "Customers and the countries served."
+  ],
+  [
+   "implementation",
+   "Implementation and operations plan",
+   "Key steps and timing."
+  ],
+  [
+   "investment",
+   "Investment and funding plan",
+   "How the investment will be funded."
+  ],
+  [
+   "projections",
+   "Revenue and expenditure projections",
+   "Main assumptions behind the projections."
+  ],
+  [
+   "employment",
+   "Employment and recruitment plans",
+   "Hiring plan, local and foreign staff."
+  ],
+  [
+   "office",
+   "Office space requirements",
+   "Space needed and where."
+  ],
+  [
+   "other",
+   "Other information",
+   "Anything else the Commission should know."
+  ]
+ ],
+ "BP_YEAR_FIELDS": [
+  [
+   "revenue_usd",
+   "Projected revenue (USD)",
+   "num"
+  ],
+  [
+   "expenses_usd",
+   "Projected expenses (USD)",
+   "num"
+  ],
+  [
+   "net_income_usd",
+   "Projected net income (USD)",
+   "num"
+  ],
+  [
+   "local_employees",
+   "Local employees",
+   "int"
+  ],
+  [
+   "foreign_employees",
+   "Foreign employees",
+   "int"
+  ],
+  [
+   "local_remuneration_usd",
+   "Remuneration - local (USD)",
+   "num"
+  ],
+  [
+   "foreign_remuneration_usd",
+   "Remuneration - foreign (USD)",
+   "num"
+  ],
+  [
+   "office_sqm",
+   "Office floor space (sqm)",
+   "num"
+  ],
+  [
+   "fdi_usd",
+   "FDI (USD) - funds raised outside Sri Lanka",
+   "num"
+  ],
+  [
+   "lkr_land_lease",
+   "Investment in LKR (land lease)",
+   "num"
+  ],
+  [
+   "funding_source",
+   "Source of funding",
+   "choice"
+  ],
+  [
+   "funding_details",
+   "Details of funding source (max 75 words)",
+   "text"
+  ],
+  [
+   "funding_evidence",
+   "Evidence of funding submitted",
+   "yn"
+  ]
+ ],
+ "REG": {
+  "people": {
+   "label": "Director or shareholder",
+   "plural": "Directors and shareholders",
+   "module": "company",
+   "importable": true,
+   "fields": [
+    {
+     "name": "full_name",
+     "label": "Full name (person or company)",
+     "type": "text",
+     "required": true
+    },
+    {
+     "name": "person_type",
+     "label": "Type",
+     "type": "choice",
+     "choices": [
+      "Individual",
+      "Corporate"
+     ],
+     "required": true
+    },
+    {
+     "name": "role",
+     "label": "Role",
+     "type": "choice",
+     "required": true,
+     "choices": [
+      "Director",
+      "Shareholder",
+      "Director and shareholder",
+      "Company secretary",
+      "Authorised signatory"
+     ]
+    },
+    {
+     "name": "nationality",
+     "label": "Nationality / country of incorporation",
+     "type": "text"
+    },
+    {
+     "name": "shareholding_pct",
+     "label": "Shareholding (%)",
+     "type": "decimal"
+    },
+    {
+     "name": "appointed_date",
+     "label": "Appointed / acquired on",
+     "type": "date"
+    },
+    {
+     "name": "ceased_date",
+     "label": "Ceased on",
+     "type": "date"
+    },
+    {
+     "name": "notes",
+     "label": "Notes",
+     "type": "textarea"
+    }
+   ],
+   "list": [
+    "full_name",
+    "person_type",
+    "role",
+    "nationality",
+    "shareholding_pct",
+    "ceased_date"
+   ],
+   "key": "people",
+   "title": "full_name"
+  },
+  "ubo": {
+   "label": "Beneficial owner",
+   "plural": "Beneficial owners (UBO)",
+   "module": "company",
+   "intro": "Fields follow the Beneficial Ownership Declaration Form (Form_UBO). Identifying details are visible only to roles with UBO access. The system does not sign the declaration.",
+   "fields": [
+    {
+     "name": "full_name",
+     "label": "Full name (as per NIC / passport)",
+     "type": "text",
+     "required": true
+    },
+    {
+     "name": "previous_name",
+     "label": "Previous full name (if any)",
+     "type": "text",
+     "sensitive": "ubo"
+    },
+    {
+     "name": "date_of_birth",
+     "label": "Date of birth",
+     "type": "date",
+     "sensitive": "ubo"
+    },
+    {
+     "name": "place_of_birth",
+     "label": "Place of birth",
+     "type": "text",
+     "sensitive": "ubo"
+    },
+    {
+     "name": "nationality",
+     "label": "Nationality",
+     "type": "text"
+    },
+    {
+     "name": "country_of_residence",
+     "label": "Country of residence",
+     "type": "text",
+     "sensitive": "ubo"
+    },
+    {
+     "name": "residential_address",
+     "label": "Residential address",
+     "type": "textarea",
+     "sensitive": "ubo"
+    },
+    {
+     "name": "business_address",
+     "label": "Business address",
+     "type": "textarea",
+     "sensitive": "ubo"
+    },
+    {
+     "name": "postal_address",
+     "label": "Postal address",
+     "type": "textarea",
+     "sensitive": "ubo"
+    },
+    {
+     "name": "email",
+     "label": "Email address",
+     "type": "text",
+     "sensitive": "ubo"
+    },
+    {
+     "name": "mobile",
+     "label": "Contact number (mobile)",
+     "type": "text",
+     "sensitive": "ubo"
+    },
+    {
+     "name": "nic_number",
+     "label": "National identity number (with country of issue)",
+     "type": "text",
+     "sensitive": "ubo"
+    },
+    {
+     "name": "tin",
+     "label": "Tax identification number (with country of issue)",
+     "type": "text",
+     "sensitive": "ubo"
+    },
+    {
+     "name": "passport_number",
+     "label": "Passport number (with country of issue)",
+     "type": "text",
+     "sensitive": "ubo"
+    },
+    {
+     "name": "ownership_pct",
+     "label": "Ownership or control (%)",
+     "type": "decimal"
+    },
+    {
+     "name": "nature_extent",
+     "label": "Statement describing nature and extent of beneficial ownership",
+     "type": "textarea",
+     "sensitive": "ubo"
+    },
+    {
+     "name": "declaration_status",
+     "label": "Declaration status",
+     "type": "choice",
+     "choices": [
+      "Not prepared",
+      "Draft prepared - awaiting signature",
+      "Signed copy on file"
+     ],
+     "dflt": "Not prepared"
+    }
+   ],
+   "list": [
+    "full_name",
+    "nationality",
+    "ownership_pct",
+    "declaration_status"
+   ],
+   "key": "ubo",
+   "title": "full_name"
+  },
+  "requests": {
+   "label": "Commission request",
+   "plural": "Commission requests",
+   "module": "requests",
+   "fields": [
+    {
+     "name": "title",
+     "label": "Title",
+     "type": "text",
+     "required": true
+    },
+    {
+     "name": "category",
+     "label": "Category",
+     "type": "choice",
+     "lookup": "request_categories"
+    },
+    {
+     "name": "description",
+     "label": "Short description",
+     "type": "textarea"
+    },
+    {
+     "name": "authority",
+     "label": "Requesting authority",
+     "type": "text",
+     "dflt": "Colombo Port City Economic Commission"
+    },
+    {
+     "name": "contact_name",
+     "label": "Contact person",
+     "type": "text"
+    },
+    {
+     "name": "contact_email",
+     "label": "Contact email",
+     "type": "text"
+    },
+    {
+     "name": "received_date",
+     "label": "Date received",
+     "type": "date",
+     "required": true
+    },
+    {
+     "name": "deadline",
+     "label": "Deadline",
+     "type": "date"
+    },
+    {
+     "name": "period_or_date",
+     "label": "Reporting period or date the request relates to",
+     "type": "text"
+    },
+    {
+     "name": "responsible",
+     "label": "Responsible person",
+     "type": "user"
+    },
+    {
+     "name": "status",
+     "label": "Status",
+     "type": "choice",
+     "lookup": "request_statuses",
+     "dflt": "New",
+     "readonly": true
+    },
+    {
+     "name": "required_info",
+     "label": "Information and documents requested",
+     "type": "textarea"
+    },
+    {
+     "name": "original_request",
+     "label": "Original email or request text",
+     "type": "textarea",
+     "group": "Correspondence"
+    },
+    {
+     "name": "follow_up",
+     "label": "Follow-up actions",
+     "type": "textarea",
+     "group": "Follow-up"
+    },
+    {
+     "name": "follow_up_due",
+     "label": "Follow-up due",
+     "type": "date",
+     "group": "Follow-up"
+    },
+    {
+     "name": "notes",
+     "label": "Notes",
+     "type": "textarea",
+     "group": "Follow-up"
+    }
+   ],
+   "list": [
+    "title",
+    "category",
+    "received_date",
+    "deadline",
+    "responsible",
+    "status"
+   ],
+   "key": "requests",
+   "title": "title"
+  },
+  "templates": {
+   "label": "Response template",
+   "plural": "Response templates",
+   "module": "requests",
+   "fields": [
+    {
+     "name": "title",
+     "label": "Template name",
+     "type": "text",
+     "required": true
+    },
+    {
+     "name": "category",
+     "label": "Request category",
+     "type": "choice",
+     "lookup": "request_categories"
+    },
+    {
+     "name": "body",
+     "label": "Template text",
+     "type": "textarea",
+     "required": true,
+     "help": "Placeholders: {company_name}, {licence_number}, {as_at}, {today}, {signatory}, {contact_name}."
+    }
+   ],
+   "list": [
+    "title",
+    "category"
+   ],
+   "key": "templates",
+   "title": "title"
+  },
+  "positions": {
+   "label": "Position",
+   "plural": "Positions",
+   "module": "workforce",
+   "importable": true,
+   "title": "title",
+   "fields": [
+    {
+     "name": "ref",
+     "label": "Position reference",
+     "type": "text",
+     "required": true
+    },
+    {
+     "name": "title",
+     "label": "Job title",
+     "type": "text",
+     "required": true
+    },
+    {
+     "name": "staff_category",
+     "label": "Staff category",
+     "type": "choice",
+     "lookup": "staff_categories"
+    },
+    {
+     "name": "min_qualifications",
+     "label": "Minimum required qualifications",
+     "type": "textarea",
+     "help": "The position's requirement, not the qualifications of the person holding it."
+    },
+    {
+     "name": "min_experience_years",
+     "label": "Minimum years of experience",
+     "type": "decimal"
+    },
+    {
+     "name": "languages",
+     "label": "Language requirements",
+     "type": "text"
+    },
+    {
+     "name": "planned_headcount",
+     "label": "Planned number of people",
+     "type": "int"
+    },
+    {
+     "name": "status",
+     "label": "Status",
+     "type": "choice",
+     "choices": [
+      "Active",
+      "Open - recruiting",
+      "Closed"
+     ],
+     "dflt": "Active"
+    }
+   ],
+   "list": [
+    "ref",
+    "title",
+    "staff_category",
+    "min_experience_years",
+    "languages",
+    "status"
+   ],
+   "key": "positions"
+  },
+  "employees": {
+   "label": "Person",
+   "plural": "Workforce register",
+   "module": "workforce",
+   "importable": true,
+   "title": "ref",
+   "intro": "Employees and independent contractors are kept separate. Annual return headcounts count employees only.",
+   "fields": [
+    {
+     "name": "ref",
+     "label": "Employee or position reference",
+     "type": "text",
+     "required": true
+    },
+    {
+     "name": "full_name",
+     "label": "Name",
+     "type": "text",
+     "sensitive": "personal"
+    },
+    {
+     "name": "position_id",
+     "label": "Position",
+     "type": "ref",
+     "ref": "positions"
+    },
+    {
+     "name": "job_title",
+     "label": "Job title",
+     "type": "text",
+     "required": true
+    },
+    {
+     "name": "staff_category",
+     "label": "Staff category",
+     "type": "choice",
+     "lookup": "staff_categories"
+    },
+    {
+     "name": "nationality",
+     "label": "Nationality",
+     "type": "text",
+     "required": true
+    },
+    {
+     "name": "nationality_group",
+     "label": "Reporting group",
+     "type": "choice",
+     "choices": [
+      "Sri Lankan",
+      "Non-Sri Lankan"
+     ],
+     "help": "Filled from nationality if left blank."
+    },
+    {
+     "name": "worker_type",
+     "label": "Employee or contractor",
+     "type": "choice",
+     "choices": [
+      "Employee",
+      "Independent contractor"
+     ],
+     "required": true,
+     "dflt": "Employee"
+    },
+    {
+     "name": "employment_type",
+     "label": "Employment type",
+     "type": "choice",
+     "lookup": "employment_types"
+    },
+    {
+     "name": "status",
+     "label": "Employment status",
+     "type": "choice",
+     "choices": [
+      "Active",
+      "On notice",
+      "Left",
+      "Offer accepted - not started"
+     ],
+     "dflt": "Active"
+    },
+    {
+     "name": "start_date",
+     "label": "Start date",
+     "type": "date",
+     "required": true
+    },
+    {
+     "name": "end_date",
+     "label": "End date",
+     "type": "date"
+    },
+    {
+     "name": "office_id",
+     "label": "Office location",
+     "type": "ref",
+     "ref": "offices"
+    },
+    {
+     "name": "residency",
+     "label": "Tax residency (for adviser review)",
+     "type": "choice",
+     "choices": [
+      "Resident",
+      "Non-resident",
+      "To be confirmed"
+     ],
+     "help": "For information only. The system does not decide tax treatment."
+    },
+    {
+     "name": "pay_currency",
+     "label": "Pay currency",
+     "type": "currency",
+     "sensitive": "pay",
+     "group": "Remuneration (restricted)"
+    },
+    {
+     "name": "monthly_basic",
+     "label": "Monthly basic pay",
+     "type": "money",
+     "sensitive": "pay",
+     "group": "Remuneration (restricted)"
+    },
+    {
+     "name": "monthly_allowances",
+     "label": "Monthly allowances",
+     "type": "money",
+     "sensitive": "pay",
+     "group": "Remuneration (restricted)"
+    },
+    {
+     "name": "notes",
+     "label": "Notes",
+     "type": "textarea"
+    }
+   ],
+   "list": [
+    "ref",
+    "full_name",
+    "job_title",
+    "nationality_group",
+    "worker_type",
+    "status",
+    "start_date",
+    "office_id"
+   ],
+   "key": "employees"
+  },
+  "policies": {
+   "label": "Benefit or policy",
+   "plural": "Policies and benefits",
+   "module": "workforce",
+   "fields": [
+    {
+     "name": "policy_type",
+     "label": "Type",
+     "type": "choice",
+     "required": true,
+     "choices": [
+      "Accommodation",
+      "Health insurance",
+      "Travel and relocation",
+      "Other benefit",
+      "Allowance",
+      "Facility"
+     ]
+    },
+    {
+     "name": "title",
+     "label": "Policy name",
+     "type": "text",
+     "required": true
+    },
+    {
+     "name": "description",
+     "label": "What is provided",
+     "type": "textarea"
+    },
+    {
+     "name": "eligibility",
+     "label": "Eligibility",
+     "type": "textarea"
+    },
+    {
+     "name": "coverage_limit",
+     "label": "Coverage or limit",
+     "type": "text"
+    },
+    {
+     "name": "applies_to",
+     "label": "Applies to",
+     "type": "choice",
+     "choices": [
+      "All staff",
+      "Selected staff categories",
+      "Sri Lankan staff only",
+      "Non-Sri Lankan staff only"
+     ],
+     "dflt": "All staff"
+    },
+    {
+     "name": "categories",
+     "label": "Staff categories (if selected)",
+     "type": "text"
+    },
+    {
+     "name": "effective_from",
+     "label": "Effective from",
+     "type": "date"
+    },
+    {
+     "name": "effective_to",
+     "label": "Effective to",
+     "type": "date"
+    }
+   ],
+   "list": [
+    "policy_type",
+    "title",
+    "applies_to",
+    "coverage_limit",
+    "effective_from"
+   ],
+   "title": "title",
+   "key": "policies"
+  },
+  "investments": {
+   "label": "Investment or funding record",
+   "plural": "Investment and funding register",
+   "module": "investment",
+   "importable": true,
+   "money": true,
+   "reviewable": true,
+   "title": "source_name",
+   "intro": "Foreign receipts are not treated as FDI automatically. A reviewer confirms each classification.",
+   "fields": [
+    {
+     "name": "entry_date",
+     "label": "Date received / recorded",
+     "type": "date",
+     "required": true
+    },
+    {
+     "name": "source_name",
+     "label": "Source (who provided the funds)",
+     "type": "text",
+     "required": true
+    },
+    {
+     "name": "source_country",
+     "label": "Source country",
+     "type": "text"
+    },
+    {
+     "name": "relationship",
+     "label": "Relationship to the company",
+     "type": "choice",
+     "lookup": "fund_relationships"
+    },
+    {
+     "name": "description",
+     "label": "Description",
+     "type": "textarea"
+    },
+    {
+     "name": "original_amount",
+     "label": "Original amount",
+     "type": "money",
+     "required": true,
+     "group": "Amount and currency"
+    },
+    {
+     "name": "original_currency",
+     "label": "Original currency",
+     "type": "currency",
+     "required": true,
+     "group": "Amount and currency",
+     "help": "Three letters, e.g. USD, LKR, GBP, SGD."
+    },
+    {
+     "name": "usd_rate",
+     "label": "Rate to USD (units of original currency per 1 USD)",
+     "type": "rate",
+     "group": "Amount and currency",
+     "help": "If 1 USD = 0.79 GBP, enter 0.79. Leave blank for USD amounts."
+    },
+    {
+     "name": "usd_amount",
+     "label": "USD amount",
+     "type": "money",
+     "group": "Amount and currency",
+     "help": "Worked out from the rate if left blank. You can type the bank's actual USD figure instead."
+    },
+    {
+     "name": "lkr_rate",
+     "label": "Rate to LKR (LKR per 1 unit of original currency)",
+     "type": "rate",
+     "group": "Amount and currency",
+     "help": "If 1 USD = 300 LKR and the amount is in USD, enter 300."
+    },
+    {
+     "name": "lkr_amount",
+     "label": "LKR amount",
+     "type": "money",
+     "group": "Amount and currency"
+    },
+    {
+     "name": "rate_date",
+     "label": "Exchange rate date",
+     "type": "date",
+     "group": "Amount and currency"
+    },
+    {
+     "name": "rate_source",
+     "label": "Exchange rate source",
+     "type": "text",
+     "group": "Amount and currency",
+     "help": "E.g. Central Bank indicative rate, bank advice."
+    },
+    {
+     "name": "conversion_method",
+     "label": "Conversion method",
+     "type": "text",
+     "readonly": true,
+     "group": "Amount and currency"
+    },
+    {
+     "name": "bank_reference",
+     "label": "Bank reference",
+     "type": "text",
+     "sensitive": "bank"
+    },
+    {
+     "name": "from_outside_sl",
+     "label": "Funds raised from outside Sri Lanka?",
+     "type": "choice",
+     "choices": [
+      "Yes",
+      "No",
+      "To be confirmed"
+     ],
+     "help": "The Technical Evaluation Form defines FDI as funds raised from outside Sri Lanka."
+    },
+    {
+     "name": "classification",
+     "label": "Funding classification (proposed)",
+     "type": "choice",
+     "lookup": "fund_classes",
+     "dflt": "Pending review",
+     "help": "Only confirmed records count in FDI totals."
+    },
+    {
+     "name": "review_notes",
+     "label": "Review notes",
+     "type": "textarea"
+    }
+   ],
+   "list": [
+    "entry_date",
+    "source_name",
+    "source_country",
+    "original_amount",
+    "original_currency",
+    "usd_amount",
+    "classification"
+   ],
+   "key": "investments"
+  },
+  "offices": {
+   "label": "Office",
+   "plural": "Office register",
+   "module": "offices",
+   "importable": true,
+   "fields": [
+    {
+     "name": "name",
+     "label": "Office name",
+     "type": "text",
+     "required": true
+    },
+    {
+     "name": "address",
+     "label": "Address",
+     "type": "textarea",
+     "required": true
+    },
+    {
+     "name": "location",
+     "label": "Location",
+     "type": "choice",
+     "required": true,
+     "choices": [
+      "Inside Colombo Port City",
+      "Outside Colombo Port City"
+     ]
+    },
+    {
+     "name": "designated_status",
+     "label": "Designated location status",
+     "type": "choice",
+     "dflt": "Not applicable",
+     "choices": [
+      "Not applicable",
+      "Designated location (approved)",
+      "Designation requested",
+      "Not designated"
+     ]
+    },
+    {
+     "name": "designation_ref",
+     "label": "Designation approval reference",
+     "type": "text"
+    },
+    {
+     "name": "floor_area",
+     "label": "Floor area (as measured)",
+     "type": "decimal",
+     "required": true
+    },
+    {
+     "name": "area_unit",
+     "label": "Unit",
+     "type": "choice",
+     "choices": [
+      "sqm",
+      "sqft"
+     ],
+     "required": true,
+     "dflt": "sqm"
+    },
+    {
+     "name": "area_sqm",
+     "label": "Floor area (sqm)",
+     "type": "decimal",
+     "readonly": true
+    },
+    {
+     "name": "area_sqft",
+     "label": "Floor area (sqft)",
+     "type": "decimal",
+     "readonly": true
+    },
+    {
+     "name": "measurement_basis",
+     "label": "Measurement",
+     "type": "choice",
+     "choices": [
+      "Exact",
+      "Approximate"
+     ],
+     "dflt": "Exact"
+    },
+    {
+     "name": "seats",
+     "label": "Number of seats",
+     "type": "int"
+    },
+    {
+     "name": "status",
+     "label": "Status",
+     "type": "choice",
+     "choices": [
+      "In use",
+      "Planned",
+      "Vacated"
+     ],
+     "dflt": "In use"
+    },
+    {
+     "name": "in_use_from",
+     "label": "In use from",
+     "type": "date"
+    },
+    {
+     "name": "in_use_to",
+     "label": "In use to",
+     "type": "date"
+    },
+    {
+     "name": "lease_start",
+     "label": "Lease / rental start",
+     "type": "date",
+     "group": "Lease"
+    },
+    {
+     "name": "lease_end",
+     "label": "Lease / rental end",
+     "type": "date",
+     "group": "Lease"
+    },
+    {
+     "name": "rent_amount",
+     "label": "Rent amount",
+     "type": "money",
+     "group": "Lease"
+    },
+    {
+     "name": "rent_currency",
+     "label": "Rent currency",
+     "type": "currency",
+     "group": "Lease"
+    },
+    {
+     "name": "rent_frequency",
+     "label": "Rent is per",
+     "type": "choice",
+     "choices": [
+      "Month",
+      "Quarter",
+      "Year"
+     ],
+     "group": "Lease"
+    },
+    {
+     "name": "present_count",
+     "label": "People physically present (optional)",
+     "type": "int",
+     "group": "Physical presence",
+     "help": "Only if you count it."
+    },
+    {
+     "name": "present_date",
+     "label": "Date counted",
+     "type": "date",
+     "group": "Physical presence"
+    }
+   ],
+   "list": [
+    "name",
+    "location",
+    "designated_status",
+    "area_sqm",
+    "area_sqft",
+    "seats",
+    "status"
+   ],
+   "key": "offices",
+   "title": "name"
+  },
+  "office_plans": {
+   "label": "Planned office requirement",
+   "plural": "Planned office requirements",
+   "module": "offices",
+   "title": "effective_date",
+   "fields": [
+    {
+     "name": "effective_date",
+     "label": "Required from",
+     "type": "date",
+     "required": true
+    },
+    {
+     "name": "location",
+     "label": "Location",
+     "type": "choice",
+     "choices": [
+      "Inside Colombo Port City",
+      "Outside Colombo Port City"
+     ],
+     "required": true
+    },
+    {
+     "name": "required_sqm",
+     "label": "Space required (sqm)",
+     "type": "decimal",
+     "required": true
+    },
+    {
+     "name": "required_seats",
+     "label": "Seats required",
+     "type": "int"
+    },
+    {
+     "name": "basis",
+     "label": "Basis for this estimate",
+     "type": "text",
+     "help": "E.g. Business plan v2, Year 3 headcount"
+    },
+    {
+     "name": "annual_rent_usd",
+     "label": "Expected annual rent (USD)",
+     "type": "money"
+    },
+    {
+     "name": "annual_rent_lkr",
+     "label": "Expected annual rent (LKR)",
+     "type": "money"
+    }
+   ],
+   "list": [
+    "effective_date",
+    "location",
+    "required_sqm",
+    "required_seats",
+    "basis"
+   ],
+   "key": "office_plans"
+  },
+  "rent_options": {
+   "label": "Premises option",
+   "plural": "Premises options for rent comparison",
+   "module": "offices",
+   "importable": true,
+   "title": "name",
+   "intro": "Premises you are considering, inside Colombo Port City or at a designated location. Refundable deposits are kept separate from rent cost.",
+   "fields": [
+    {
+     "name": "name",
+     "label": "Option name",
+     "type": "text",
+     "required": true
+    },
+    {
+     "name": "location",
+     "label": "Location type",
+     "type": "choice",
+     "required": true,
+     "choices": [
+      "Inside Colombo Port City",
+      "Designated location outside Port City",
+      "Outside Port City (not designated)"
+     ]
+    },
+    {
+     "name": "address",
+     "label": "Address",
+     "type": "textarea"
+    },
+    {
+     "name": "designation_note",
+     "label": "Designation position (designated locations only)",
+     "type": "text",
+     "help": "Regulation 15 of Regulations No. 1 of 2023 allowed designated locations outside Port City up to 26 May 2026. Confirm the current position with the Commission."
+    },
+    {
+     "name": "floor_area",
+     "label": "Floor area",
+     "type": "decimal",
+     "required": true
+    },
+    {
+     "name": "area_unit",
+     "label": "Unit",
+     "type": "choice",
+     "choices": [
+      "sqm",
+      "sqft"
+     ],
+     "required": true,
+     "dflt": "sqm"
+    },
+    {
+     "name": "area_sqm",
+     "label": "Floor area (sqm)",
+     "type": "decimal",
+     "readonly": true
+    },
+    {
+     "name": "area_sqft",
+     "label": "Floor area (sqft)",
+     "type": "decimal",
+     "readonly": true
+    },
+    {
+     "name": "seats",
+     "label": "Seats it can take",
+     "type": "int"
+    },
+    {
+     "name": "available_from",
+     "label": "Available from",
+     "type": "date"
+    },
+    {
+     "name": "currency",
+     "label": "Currency",
+     "type": "currency",
+     "required": true,
+     "group": "Rent and charges"
+    },
+    {
+     "name": "rent_basis",
+     "label": "Rent is quoted as",
+     "type": "choice",
+     "required": true,
+     "group": "Rent and charges",
+     "choices": [
+      "Total per month",
+      "Per sqm per month",
+      "Per sqft per month"
+     ],
+     "dflt": "Per sqm per month"
+    },
+    {
+     "name": "rent_rate",
+     "label": "Rent amount or rate",
+     "type": "money",
+     "required": true,
+     "group": "Rent and charges"
+    },
+    {
+     "name": "service_charge",
+     "label": "Service charge per month",
+     "type": "money",
+     "group": "Rent and charges"
+    },
+    {
+     "name": "escalation_pct",
+     "label": "Yearly rent increase (%)",
+     "type": "decimal",
+     "group": "Rent and charges",
+     "dflt": 0
+    },
+    {
+     "name": "lease_years",
+     "label": "Lease term (years)",
+     "type": "decimal",
+     "group": "Rent and charges",
+     "required": true,
+     "dflt": 3
+    },
+    {
+     "name": "deposit_months",
+     "label": "Refundable deposit (months of rent)",
+     "type": "decimal",
+     "group": "Deposits and upfront costs",
+     "help": "Or type the deposit amount below."
+    },
+    {
+     "name": "deposit_amount",
+     "label": "Refundable deposit (amount)",
+     "type": "money",
+     "group": "Deposits and upfront costs",
+     "help": "Overrides the months figure if filled."
+    },
+    {
+     "name": "advance_months",
+     "label": "Advance rent paid upfront (months)",
+     "type": "decimal",
+     "group": "Deposits and upfront costs",
+     "help": "Prepaid rent. Counts as cost, not as a deposit."
+    },
+    {
+     "name": "fitout_cost",
+     "label": "Fit-out and set-up cost (one-off)",
+     "type": "money",
+     "group": "Deposits and upfront costs"
+    },
+    {
+     "name": "notes",
+     "label": "Notes",
+     "type": "textarea"
+    }
+   ],
+   "list": [
+    "name",
+    "location",
+    "area_sqm",
+    "seats",
+    "currency",
+    "rent_rate",
+    "rent_basis",
+    "lease_years"
+   ],
+   "key": "rent_options"
+  },
+  "fin_entries": {
+   "label": "Financial record",
+   "plural": "Financial records for returns",
+   "module": "returns",
+   "importable": true,
+   "money": true,
+   "reviewable": true,
+   "title": "description",
+   "intro": "Enter totals or individual transactions for each annual return category, or import them from an Excel export of your accounts. Amounts keep their original currency.",
+   "fields": [
+    {
+     "name": "entry_date",
+     "label": "Date (or period end)",
+     "type": "date",
+     "required": true
+    },
+    {
+     "name": "category",
+     "label": "Annual return category",
+     "type": "choice",
+     "lookup": "ar_categories",
+     "required": true
+    },
+    {
+     "name": "country_region",
+     "label": "Customer country / region (revenue only)",
+     "type": "text"
+    },
+    {
+     "name": "staff_group",
+     "label": "Staff group (staff costs only)",
+     "type": "choice",
+     "choices": [
+      "Not applicable",
+      "Sri Lankan",
+      "Non-Sri Lankan"
+     ],
+     "dflt": "Not applicable"
+    },
+    {
+     "name": "office_id",
+     "label": "Office (rent only)",
+     "type": "ref",
+     "ref": "offices"
+    },
+    {
+     "name": "description",
+     "label": "Description",
+     "type": "text",
+     "required": true
+    },
+    {
+     "name": "original_amount",
+     "label": "Original amount",
+     "type": "money",
+     "required": true,
+     "group": "Amount and currency"
+    },
+    {
+     "name": "original_currency",
+     "label": "Original currency",
+     "type": "currency",
+     "required": true,
+     "group": "Amount and currency",
+     "help": "Three letters, e.g. USD, LKR, GBP, SGD."
+    },
+    {
+     "name": "usd_rate",
+     "label": "Rate to USD (units of original currency per 1 USD)",
+     "type": "rate",
+     "group": "Amount and currency",
+     "help": "If 1 USD = 0.79 GBP, enter 0.79. Leave blank for USD amounts."
+    },
+    {
+     "name": "usd_amount",
+     "label": "USD amount",
+     "type": "money",
+     "group": "Amount and currency",
+     "help": "Worked out from the rate if left blank. You can type the bank's actual USD figure instead."
+    },
+    {
+     "name": "lkr_rate",
+     "label": "Rate to LKR (LKR per 1 unit of original currency)",
+     "type": "rate",
+     "group": "Amount and currency",
+     "help": "If 1 USD = 300 LKR and the amount is in USD, enter 300."
+    },
+    {
+     "name": "lkr_amount",
+     "label": "LKR amount",
+     "type": "money",
+     "group": "Amount and currency"
+    },
+    {
+     "name": "rate_date",
+     "label": "Exchange rate date",
+     "type": "date",
+     "group": "Amount and currency"
+    },
+    {
+     "name": "rate_source",
+     "label": "Exchange rate source",
+     "type": "text",
+     "group": "Amount and currency",
+     "help": "E.g. Central Bank indicative rate, bank advice."
+    },
+    {
+     "name": "conversion_method",
+     "label": "Conversion method",
+     "type": "text",
+     "readonly": true,
+     "group": "Amount and currency"
+    },
+    {
+     "name": "reference",
+     "label": "Invoice / voucher / ERP reference",
+     "type": "text"
+    },
+    {
+     "name": "pre_operating",
+     "label": "Pre-operating transaction?",
+     "type": "choice",
+     "choices": [
+      "Yes",
+      "No"
+     ],
+     "dflt": "No"
+    }
+   ],
+   "list": [
+    "entry_date",
+    "category",
+    "description",
+    "staff_group",
+    "original_amount",
+    "original_currency",
+    "usd_amount",
+    "lkr_amount"
+   ],
+   "key": "fin_entries"
+  },
+  "housing": {
+   "label": "Residential unit",
+   "plural": "Staff residential units",
+   "module": "returns",
+   "title": "description",
+   "fields": [
+    {
+     "name": "description",
+     "label": "Unit description",
+     "type": "text",
+     "required": true
+    },
+    {
+     "name": "staff_group",
+     "label": "Used by",
+     "type": "choice",
+     "choices": [
+      "Sri Lankan",
+      "Non-Sri Lankan"
+     ],
+     "required": true
+    },
+    {
+     "name": "tenure",
+     "label": "Leased or purchased",
+     "type": "choice",
+     "choices": [
+      "Leased",
+      "Purchased"
+     ],
+     "required": true
+    },
+    {
+     "name": "from_date",
+     "label": "From",
+     "type": "date",
+     "required": true
+    },
+    {
+     "name": "to_date",
+     "label": "To",
+     "type": "date"
+    }
+   ],
+   "list": [
+    "description",
+    "staff_group",
+    "tenure",
+    "from_date",
+    "to_date"
+   ],
+   "key": "housing"
+  },
+  "licences": {
+   "label": "Licence or approval",
+   "plural": "Licences, designations and agreements",
+   "module": "obligations",
+   "title": "title",
+   "fields": [
+    {
+     "name": "licence_type",
+     "label": "Type",
+     "type": "choice",
+     "lookup": "licence_types",
+     "required": true
+    },
+    {
+     "name": "title",
+     "label": "Title",
+     "type": "text",
+     "required": true
+    },
+    {
+     "name": "number",
+     "label": "Number / reference",
+     "type": "text"
+    },
+    {
+     "name": "issuing_authority",
+     "label": "Issued by",
+     "type": "text",
+     "dflt": "Colombo Port City Economic Commission"
+    },
+    {
+     "name": "issue_date",
+     "label": "Issue date",
+     "type": "date"
+    },
+    {
+     "name": "expiry_date",
+     "label": "Expiry date",
+     "type": "date"
+    },
+    {
+     "name": "status",
+     "label": "Status",
+     "type": "choice",
+     "choices": [
+      "Pending",
+      "Active",
+      "Expired",
+      "Suspended",
+      "Cancelled",
+      "Surrendered"
+     ],
+     "dflt": "Active"
+    },
+    {
+     "name": "designation_category",
+     "label": "Designation / category (if any)",
+     "type": "text"
+    },
+    {
+     "name": "approved_activities",
+     "label": "Approved business activities",
+     "type": "textarea"
+    },
+    {
+     "name": "conditions",
+     "label": "Conditions stated in the licence or approval",
+     "type": "textarea",
+     "help": "Add each condition under Obligations so it can be tracked. Conditions apply only as stated in your own licence."
+    },
+    {
+     "name": "renewal_notice_days",
+     "label": "Remind me this many days before expiry",
+     "type": "int",
+     "dflt": 60,
+     "help": "Fees Regulations No. 2 of 2024: renewal fee payable two months before expiry."
+    },
+    {
+     "name": "renewal_fee_usd",
+     "label": "Renewal fee (USD)",
+     "type": "money"
+    },
+    {
+     "name": "responsible",
+     "label": "Responsible person",
+     "type": "user"
+    },
+    {
+     "name": "notes",
+     "label": "Notes",
+     "type": "textarea"
+    }
+   ],
+   "list": [
+    "licence_type",
+    "title",
+    "number",
+    "issue_date",
+    "expiry_date",
+    "status"
+   ],
+   "key": "licences"
+  },
+  "obligations": {
+   "label": "Obligation or condition",
+   "plural": "Obligations and conditions",
+   "module": "obligations",
+   "title": "title",
+   "intro": "Record only conditions that apply to this company. Business plan projections are not treated as commitments unless a licence, approval or agreement says so.",
+   "fields": [
+    {
+     "name": "title",
+     "label": "Obligation / condition",
+     "type": "text",
+     "required": true
+    },
+    {
+     "name": "description",
+     "label": "Description",
+     "type": "textarea"
+    },
+    {
+     "name": "obligation_type",
+     "label": "Type",
+     "type": "choice",
+     "lookup": "obligation_types",
+     "required": true
+    },
+    {
+     "name": "basis",
+     "label": "Why it applies to us",
+     "type": "choice",
+     "required": true,
+     "choices": [
+      "Stated in our licence, approval or agreement",
+      "General law or regulation - applicability confirmed",
+      "General law or regulation - applicability to be confirmed",
+      "Requested by the Commission",
+      "Business plan projection (not a commitment unless confirmed)",
+      "Internal good practice"
+     ]
+    },
+    {
+     "name": "source_document",
+     "label": "Source document and clause",
+     "type": "text",
+     "required": true
+    },
+    {
+     "name": "target",
+     "label": "Target (if any)",
+     "type": "text"
+    },
+    {
+     "name": "deadline",
+     "label": "Deadline / next due date",
+     "type": "date"
+    },
+    {
+     "name": "recurrence",
+     "label": "Repeats",
+     "type": "choice",
+     "choices": [
+      "One-off",
+      "Monthly",
+      "Quarterly",
+      "Annually"
+     ],
+     "dflt": "One-off"
+    },
+    {
+     "name": "responsible",
+     "label": "Responsible person",
+     "type": "user"
+    },
+    {
+     "name": "status",
+     "label": "Status",
+     "type": "choice",
+     "dflt": "Not started",
+     "choices": [
+      "Not started",
+      "In progress",
+      "Met",
+      "Not met",
+      "Not applicable",
+      "Under review"
+     ]
+    },
+    {
+     "name": "needs_review",
+     "label": "Needs adviser review",
+     "type": "choice",
+     "choices": [
+      "Yes",
+      "No"
+     ],
+     "dflt": "No"
+    },
+    {
+     "name": "evidence",
+     "label": "Evidence and notes",
+     "type": "textarea"
+    }
+   ],
+   "list": [
+    "title",
+    "obligation_type",
+    "basis",
+    "deadline",
+    "responsible",
+    "status",
+    "needs_review"
+   ],
+   "key": "obligations"
+  },
+  "visas": {
+   "label": "Visa or permit",
+   "plural": "Visas and permits",
+   "module": "visas",
+   "title": "person_name",
+   "intro": "Tracking only. The system does not apply for, submit or grant visas.",
+   "fields": [
+    {
+     "name": "person_name",
+     "label": "Name",
+     "type": "text",
+     "required": true,
+     "sensitive": "personal"
+    },
+    {
+     "name": "person_type",
+     "label": "Person type",
+     "type": "choice",
+     "choices": [
+      "Employee",
+      "Director",
+      "Shareholder",
+      "Consultant",
+      "Dependant",
+      "Other"
+     ],
+     "required": true
+    },
+    {
+     "name": "nationality",
+     "label": "Nationality",
+     "type": "text",
+     "required": true
+    },
+    {
+     "name": "role",
+     "label": "Role / relationship",
+     "type": "text"
+    },
+    {
+     "name": "visa_category",
+     "label": "Visa or permit category",
+     "type": "choice",
+     "lookup": "visa_categories",
+     "required": true
+    },
+    {
+     "name": "application_status",
+     "label": "Application status",
+     "type": "choice",
+     "lookup": "visa_statuses",
+     "dflt": "Not started"
+    },
+    {
+     "name": "passport_number",
+     "label": "Passport number",
+     "type": "text",
+     "sensitive": "id"
+    },
+    {
+     "name": "passport_expiry",
+     "label": "Passport expiry date",
+     "type": "date",
+     "sensitive": "id"
+    },
+    {
+     "name": "application_date",
+     "label": "Application date",
+     "type": "date"
+    },
+    {
+     "name": "approval_date",
+     "label": "Approval date",
+     "type": "date"
+    },
+    {
+     "name": "expiry_date",
+     "label": "Visa / permit expiry date",
+     "type": "date"
+    },
+    {
+     "name": "dependants",
+     "label": "Dependants (names and visa expiry)",
+     "type": "textarea",
+     "sensitive": "personal"
+    },
+    {
+     "name": "responsible",
+     "label": "Responsible person",
+     "type": "user"
+    },
+    {
+     "name": "notes",
+     "label": "Notes",
+     "type": "textarea"
+    }
+   ],
+   "list": [
+    "person_name",
+    "nationality",
+    "visa_category",
+    "application_status",
+    "expiry_date",
+    "responsible"
+   ],
+   "key": "visas"
+  },
+  "fx_rates": {
+   "label": "Exchange rate",
+   "plural": "Exchange rates",
+   "module": "settings",
+   "importable": true,
+   "title": "currency",
+   "intro": "A reference table used to suggest rates. Each record still keeps its own rate, date and source.",
+   "fields": [
+    {
+     "name": "rate_date",
+     "label": "Rate date",
+     "type": "date",
+     "required": true
+    },
+    {
+     "name": "currency",
+     "label": "Currency",
+     "type": "currency",
+     "required": true
+    },
+    {
+     "name": "per_usd",
+     "label": "Units of this currency per 1 USD",
+     "type": "rate"
+    },
+    {
+     "name": "lkr_per_unit",
+     "label": "LKR per 1 unit of this currency",
+     "type": "rate"
+    },
+    {
+     "name": "source",
+     "label": "Source",
+     "type": "text",
+     "required": true
+    }
+   ],
+   "list": [
+    "rate_date",
+    "currency",
+    "per_usd",
+    "lkr_per_unit",
+    "source"
+   ],
+   "key": "fx_rates"
+  }
+ }
+}

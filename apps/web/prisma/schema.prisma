@@ -1,0 +1,169 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum OrgStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum UserStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum FormStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Organization {
+  id        String    @id @default(cuid())
+  name      String
+  slug      String    @unique
+  status    OrgStatus @default(ACTIVE)
+  isDemo    Boolean   @default(false)
+  stage     String    @default("licensed")
+  profile   Json      @default("{}")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  memberships Membership[]
+  roles       Role[]
+  forms       FormDefinition[]
+  lookups     Lookup[]
+
+  @@map("organizations")
+}
+
+model User {
+  id              String     @id @default(cuid())
+  keycloakSub     String?    @unique
+  email           String     @unique
+  name            String
+  isPlatformAdmin Boolean    @default(false)
+  status          UserStatus @default(ACTIVE)
+  lastLoginAt     DateTime?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  memberships Membership[]
+
+  @@map("users")
+}
+
+/// organizationId null = template copied into each new organization.
+model Role {
+  id             String        @id @default(cuid())
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  key            String
+  name           String
+  description    String?
+  isSystem       Boolean       @default(false)
+  /// { module: "none" | "read" | "write" | "approve" }
+  permissions    Json          @default("{}")
+  /// sensitive field categories this role can see
+  sensitive      String[]      @default([])
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  memberships Membership[]
+
+  @@unique([organizationId, key])
+  @@map("roles")
+}
+
+model Membership {
+  id             String       @id @default(cuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  roleId         String
+  role           Role         @relation(fields: [roleId], references: [id])
+  createdAt      DateTime     @default(now())
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+  @@map("memberships")
+}
+
+/// organizationId null = global definition; an org row with the same key overrides it.
+model FormDefinition {
+  id             String        @id @default(cuid())
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  key            String
+  label          String
+  plural         String
+  module         String
+  intro          String?
+  titleField     String
+  listFields     String[]
+  /// FormField[]: name, label, type, required, choices, lookup, ref, sensitive, group, help, dflt, readonly
+  fields         Json
+  importable     Boolean       @default(false)
+  reviewable     Boolean       @default(false)
+  status         FormStatus    @default(PUBLISHED)
+  version        Int           @default(1)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@unique([organizationId, key])
+  @@map("form_definitions")
+}
+
+model Lookup {
+  id             String        @id @default(cuid())
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  key            String
+  values         String[]
+
+  @@unique([organizationId, key])
+  @@map("lookups")
+}
+
+/// Row level security enforced: see the rls migration.
+model Record {
+  id             String    @id @default(cuid())
+  organizationId String
+  formKey        String
+  data           Json
+  reviewStatus   String?
+  reviewedById   String?
+  reviewedAt     DateTime?
+  archivedAt     DateTime?
+  createdById    String?
+  updatedById    String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([organizationId, formKey])
+  @@map("records")
+}
+
+/// Row level security enforced: see the rls migration.
+model AuditLog {
+  id             String   @id @default(cuid())
+  organizationId String
+  actorId        String?
+  actorEmail     String?
+  action         String
+  entityType     String
+  entityId       String?
+  summary        String?
+  before         Json?
+  after          Json?
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, createdAt])
+  @@map("audit_logs")
+}

@@ -1,0 +1,31 @@
+/* Sign-in: colours are the artifact's clean theme tokens. Kept deliberately small on top of keycloak.v2. */
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Space+Grotesk:wght@600;700&display=swap");
+:root { --qz-ink:#111827; --qz-muted:#6B7280; --qz-line:#ECEEF2; --qz-brand:#4F46E5; --qz-bg:#ffffff; --qz-panel:#ffffff; }
+@media (prefers-color-scheme: dark) { :root { --qz-ink:#F3F4F6; --qz-muted:#B0B6C2; --qz-line:#383E4A; --qz-brand:#8B93F8; --qz-bg:#1D2027; --qz-panel:#262A33; } }
+html, body, .pf-v5-c-login { background: var(--qz-bg) !important; font-family: "Google Sans","Poppins",system-ui,sans-serif !important; color: var(--qz-ink); }
+.pf-v5-c-login { background: var(--qz-bg) url("../img/colombo-skyline-light.svg") center bottom / min(1500px,100%) auto no-repeat !important; min-height: 100vh; }
+@media (prefers-color-scheme: dark) { .pf-v5-c-login { background-image: url("../img/colombo-skyline-dark.svg") !important; } }
+.pf-v5-c-login__main { background: var(--qz-panel) !important; border: 1px solid var(--qz-line); border-radius: 22px !important; box-shadow: 0 12px 40px -12px rgba(17,24,39,.18); color: var(--qz-ink); }
+.pf-v5-c-login__main-header, .pf-v5-c-login__main-body, .pf-v5-c-login__main-footer { color: var(--qz-ink); }
+.pf-v5-c-title { color: var(--qz-ink) !important; font-weight: 600 !important; }
+#kc-header-wrapper { font: 700 34px "Space Grotesk",sans-serif !important; letter-spacing: -.02em; color: var(--qz-ink) !important; text-transform: lowercase; }
+#kc-header-wrapper::before { content:""; display:inline-block; width:34px; height:34px; margin-right:10px; vertical-align:-6px; background: url("../img/quayzen-mark-professional.svg") center/contain no-repeat; }
+.pf-v5-c-form-control { background: var(--qz-panel) !important; border-radius: 12px !important; --pf-v5-c-form-control--before--BorderStyle: none; --pf-v5-c-form-control--after--BorderStyle: none; border: 1px solid var(--qz-line) !important; color: var(--qz-ink) !important; }
+.pf-v5-c-form-control input { color: var(--qz-ink) !important; }
+.pf-v5-c-form__label-text { color: var(--qz-ink) !important; font-weight: 500; }
+.pf-v5-c-button.pf-m-primary { background: var(--qz-brand) !important; border-radius: 999px !important; font-weight: 600; }
+a, .pf-v5-c-button.pf-m-link { color: var(--qz-brand) !important; }
+
+/* Centred card above the skyline, as in the sign-in design. */
+.pf-v5-c-login__container { display: flex !important; flex-direction: column; align-items: center; justify-content: flex-start; max-width: 540px !important; width: 100%; margin: 0 auto; padding-top: 4vh; grid-template-columns: none !important; }
+.pf-v5-c-login__main { width: 100%; }
+.pf-v5-c-login__header, #kc-header { width: 100%; text-align: left; margin-bottom: 14px; padding: 0 !important; grid-area: auto !important; }
+#kc-header-wrapper { padding: 0 !important; }
+#kc-header-wrapper::after { content: "SEZ records, deadlines and filings in one place."; display: block; margin-top: 6px; font: 400 15px "Google Sans","Poppins",sans-serif; letter-spacing: 0; color: var(--qz-muted); text-transform: none; }
+.pf-v5-c-form-control:focus-within { outline: 2px solid var(--qz-brand) !important; outline-offset: 0; }
+input:focus-visible { outline: none !important; }
+.pf-v5-c-login { background-size: min(1700px,100%) auto !important; }
+.pf-v5-c-login__main { width: min(520px, 100%) !important; max-width: 520px !important; flex: none !important; }
+.pf-v5-c-login__container { width: min(520px, calc(100% - 32px)) !important; }
+.pf-v5-c-login__container { width: 520px !important; max-width: calc(100vw - 32px) !important; flex: 0 0 auto !important; }
+.pf-v5-c-login__main { width: 100% !important; max-width: none !important; }

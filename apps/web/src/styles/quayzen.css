@@ -1,0 +1,16 @@
+/* Fixes and additions on top of the verbatim artifact.css. Tokens only: no new colours. */
+/* Flaw fix: the Professional gradient ended abruptly on long pages. */
+html[data-look="pro"] body { background-attachment: fixed; min-height: 100vh; }
+/* Flaw fix: the dock covered page content. */
+.mainwrap main { padding-bottom: 150px; }
+.qz-table { width: 100%; border-collapse: collapse; }
+.qz-table th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); padding: 10px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.qz-table td { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.qz-scroll { overflow-x: auto; }
+/* Long names and an extra Admin button must not crowd the artifact's topbar. */
+.topbar .cosel select { max-width: 200px; text-overflow: ellipsis; }
+.topbar .cosel .role { white-space: nowrap; }
+.topbar .look-seg button { white-space: nowrap; }
+.topbar .tgroup { flex: none; }
+.topbar .btn { white-space: nowrap; }
+@media (max-width: 1180px) { .topbar .hide-sm { display: none; } .topbar .cosel .role { display: none; } }

@@ -1,0 +1,11 @@
+node_modules/
+.next/
+.env
+.env.*
+!.env.example
+*:Zone.Identifier
+apps/web/src/generated/
+.venv/
+__pycache__/
+.ruff_cache/
+/services/ai/data/

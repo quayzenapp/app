@@ -1,0 +1,182 @@
+{
+ "realm": "quayzen",
+ "enabled": true,
+ "displayName": "Quayzen",
+ "registrationAllowed": false,
+ "loginWithEmailAllowed": true,
+ "duplicateEmailsAllowed": false,
+ "registrationEmailAsUsername": true,
+ "resetPasswordAllowed": true,
+ "rememberMe": true,
+ "editUsernameAllowed": false,
+ "bruteForceProtected": true,
+ "loginTheme": "quayzen",
+ "sslRequired": "external",
+ "clients": [
+  {
+   "clientId": "quayzen-web",
+   "name": "Quayzen",
+   "enabled": true,
+   "protocol": "openid-connect",
+   "publicClient": false,
+   "secret": "dev-web-secret-change-me",
+   "standardFlowEnabled": true,
+   "directAccessGrantsEnabled": false,
+   "redirectUris": [
+    "http://localhost:3000/*"
+   ],
+   "webOrigins": [
+    "http://localhost:3000"
+   ],
+   "attributes": {
+    "pkce.code.challenge.method": "S256",
+    "post.logout.redirect.uris": "http://localhost:3000/*"
+   }
+  },
+  {
+   "clientId": "quayzen-admin",
+   "name": "Quayzen user admin",
+   "enabled": true,
+   "protocol": "openid-connect",
+   "publicClient": false,
+   "secret": "dev-admin-secret-change-me",
+   "standardFlowEnabled": false,
+   "directAccessGrantsEnabled": false,
+   "serviceAccountsEnabled": true
+  }
+ ],
+ "users": [
+  {
+   "username": "service-account-quayzen-admin",
+   "enabled": true,
+   "serviceAccountClientId": "quayzen-admin",
+   "clientRoles": {
+    "realm-management": [
+     "manage-users",
+     "view-users",
+     "query-users"
+    ]
+   }
+  },
+  {
+   "username": "platform@quayzen.test",
+   "email": "platform@quayzen.test",
+   "emailVerified": true,
+   "enabled": true,
+   "firstName": "Platform",
+   "lastName": "Admin",
+   "credentials": [
+    {
+     "type": "password",
+     "value": "Demo@12345",
+     "temporary": false
+    }
+   ]
+  },
+  {
+   "username": "admin@demo.test",
+   "email": "admin@demo.test",
+   "emailVerified": true,
+   "enabled": true,
+   "firstName": "Dinithi",
+   "lastName": "Admin",
+   "credentials": [
+    {
+     "type": "password",
+     "value": "Demo@12345",
+     "temporary": false
+    }
+   ]
+  },
+  {
+   "username": "compliance@demo.test",
+   "email": "compliance@demo.test",
+   "emailVerified": true,
+   "enabled": true,
+   "firstName": "Chamara",
+   "lastName": "Compliance",
+   "credentials": [
+    {
+     "type": "password",
+     "value": "Demo@12345",
+     "temporary": false
+    }
+   ]
+  },
+  {
+   "username": "hr@demo.test",
+   "email": "hr@demo.test",
+   "emailVerified": true,
+   "enabled": true,
+   "firstName": "Harini",
+   "lastName": "HR",
+   "credentials": [
+    {
+     "type": "password",
+     "value": "Demo@12345",
+     "temporary": false
+    }
+   ]
+  },
+  {
+   "username": "finance@demo.test",
+   "email": "finance@demo.test",
+   "emailVerified": true,
+   "enabled": true,
+   "firstName": "Farah",
+   "lastName": "Finance",
+   "credentials": [
+    {
+     "type": "password",
+     "value": "Demo@12345",
+     "temporary": false
+    }
+   ]
+  },
+  {
+   "username": "reviewer@demo.test",
+   "email": "reviewer@demo.test",
+   "emailVerified": true,
+   "enabled": true,
+   "firstName": "Ravi",
+   "lastName": "Reviewer",
+   "credentials": [
+    {
+     "type": "password",
+     "value": "Demo@12345",
+     "temporary": false
+    }
+   ]
+  },
+  {
+   "username": "adviser@demo.test",
+   "email": "adviser@demo.test",
+   "emailVerified": true,
+   "enabled": true,
+   "firstName": "Amal",
+   "lastName": "Adviser",
+   "credentials": [
+    {
+     "type": "password",
+     "value": "Demo@12345",
+     "temporary": false
+    }
+   ]
+  },
+  {
+   "username": "admin@harbourline.test",
+   "email": "admin@harbourline.test",
+   "emailVerified": true,
+   "enabled": true,
+   "firstName": "Helen",
+   "lastName": "Tan",
+   "credentials": [
+    {
+     "type": "password",
+     "value": "Demo@12345",
+     "temporary": false
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,13 @@
+@import "tailwindcss";
+@import "../styles/artifact.css";
+@import "../styles/quayzen.css";
+
+/* Tailwind utilities map onto the artifact's own tokens, so every theme mode follows automatically. */
+@theme inline {
+  --color-bg: var(--bg); --color-panel: var(--panel); --color-soft: var(--soft); --color-ink: var(--ink);
+  --color-muted: var(--muted); --color-line: var(--line); --color-track: var(--track);
+  --color-brand: var(--brand); --color-brand-ink: var(--brand-ink); --color-brand-bg: var(--brand-bg);
+  --color-ok: var(--ok); --color-ok-bg: var(--ok-bg); --color-warn: var(--warn); --color-warn-bg: var(--warn-bg);
+  --color-bad: var(--bad); --color-bad-bg: var(--bad-bg); --color-info: var(--info); --color-info-bg: var(--info-bg);
+  --font-sans: var(--f-body); --radius-card: var(--r);
+}

@@ -1,0 +1,65 @@
+name: quayzen
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-quayzen_owner}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-quayzen_dev_owner}
+      POSTGRES_DB: quayzen
+      QZ_APP_PASSWORD: ${QZ_APP_PASSWORD:-quayzen_dev_app}
+    ports: ["127.0.0.1:5434:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/postgres/init.sh:/docker-entrypoint-initdb.d/10-init.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d quayzen"]
+      interval: 5s
+      retries: 20
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.4
+    restart: unless-stopped
+    command: ["start-dev", "--import-realm", "--http-port=8180", "--hostname=http://localhost:8180", "--spi-theme-static-max-age=-1", "--spi-theme-cache-themes=false"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_ADMIN_PASSWORD:-admin_dev}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: ${POSTGRES_USER:-quayzen_owner}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-quayzen_dev_owner}
+    ports: ["127.0.0.1:8180:8180"]
+    volumes:
+      - ./infra/keycloak/realm:/opt/keycloak/data/import:ro
+      - ./infra/keycloak/themes/quayzen:/opt/keycloak/themes/quayzen:ro
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  ai:
+    profiles: ["ai"]
+    build: ./services/ai
+    restart: unless-stopped
+    env_file: ./services/ai/.env
+    environment:
+      AI_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-quayzen_owner}:${POSTGRES_PASSWORD:-quayzen_dev_owner}@postgres:5432/quayzen_ai
+    ports: ["127.0.0.1:8100:8100"]
+    volumes: ["aidata:/data"]
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  ai-worker:
+    profiles: ["ai"]
+    build: ./services/ai
+    restart: unless-stopped
+    command: ["python", "-m", "app.worker"]
+    env_file: ./services/ai/.env
+    environment:
+      AI_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-quayzen_owner}:${POSTGRES_PASSWORD:-quayzen_dev_owner}@postgres:5432/quayzen_ai
+    volumes: ["aidata:/data"]
+    depends_on:
+      postgres: { condition: service_healthy }
+
+volumes:
+  pgdata:
+  aidata:
