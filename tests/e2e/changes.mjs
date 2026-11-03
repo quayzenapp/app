@@ -1,3 +1,4 @@
+import { markedPack } from "./form-marks.mjs";
 import { testApplicationTables } from "./lic-tables.mjs";
 // Wait for the actual action response and committed UI, including repeated equal success messages.
 async function submit(page, selector) {
@@ -18,7 +19,9 @@ export async function repeatedSaves(p, check, S, addPage) {
   await save(); check("plain repeated save never adds a third row", (await rows()).length === 2, JSON.stringify(await rows()));
   await p.fill('textarea[name="i.0.new"]', "First member"); await p.fill('textarea[name="i.1.new"]', "Second member"); await p.check('input[name="remove:0"]'); await save();
   check("removal shows the surviving row and clears the checkbox without reload", JSON.stringify(await rows()) === '["Second member"]' && !(await p.isChecked('input[name="remove:0"]')));
-  await save(); const screen = await rows(); await p.reload({ waitUntil: "networkidle" });
+  await save(); const screen = await rows();
+  // Background requests can keep a production page busy after navigation. Read the rendered row before comparing persisted data.
+  await p.reload({ waitUntil: "domcontentloaded" }); await p.locator('textarea[name="i.0.new"]').waitFor({ state: "visible" });
   check("a following plain save keeps the row and screen equals persisted data", JSON.stringify(screen) === '["Second member"]' && JSON.stringify(await rows()) === JSON.stringify(screen));
   await p.screenshot({ path: `${S}/changes-repeat-save.png` });
   await addPage.goto("http://localhost:3000/admin/organizations", { waitUntil: "networkidle" }); await addPage.waitForTimeout(500);
@@ -90,6 +93,7 @@ export async function testChanges({ admin, reviewer, finance, other, adviser, ch
   const pack = async () => { const r = await admin.ctx.request.get(BASE + base + "/forms"); if (r.status() !== 200) throw new Error(await r.text()); return { r, z: await JSZip.loadAsync(await r.body()) }; };
   let output = await pack(); check("notice draft pack includes original S3, offshore III and Schedule I profiles", Object.keys(output.z.files).some((n) => n.includes("Schedule_I_Part_III")) && Object.keys(output.z.files).some((n) => n.includes("Schedule_I_Part_V")) && Object.keys(output.z.files).some((n) => n.includes("Form_III_Offshore")) && Object.keys(output.z.files).filter((n) => n !== "READ_ME.txt").every((n) => n.startsWith("DEMO_DRAFT_")));
   await go(p, base); await p.fill('input[name="o3.arc.date"]', "2026-11-01"); await save(p);
+  check("notice draft PDFs and profiles have DRAFT and DEMO on every page", await markedPack(output.z, "DRAFT / DEMO"));
   r = await admin.ctx.request.get(BASE + base + "/forms"); check("ambiguous offshore cessation date refuses delivery pending review", r.status() === 422 && (await r.text()).includes("mapping needs review"));
   await status(admin, "Mark ready for review", "Ready for review");
   await go(approvalPage, base); await approvalPage.click('summary:text-is("Approve")'); approvalPage.once("dialog", (d) => d.accept()); await approvalPage.click('button:text-is("Record Approved")'); await approvalPage.waitForSelector('details[open] .banner.bad');
@@ -124,6 +128,7 @@ export async function testChanges({ admin, reviewer, finance, other, adviser, ch
   r = await replay(admin); check("stale save action cannot edit a submitted notice", (await r.text()).includes("so it is locked"));
   const lockedRemoval = await admin.ctx.request.post(BASE + base, removalRequest); check("stale removal action is refused after submission", (await lockedRemoval.text()).includes("so it is locked"));
   output = await pack(); const names = Object.keys(output.z.files); const s3 = await PDFDocument.load(await output.z.file(names.find((n) => n.includes("Schedule_III"))).async("uint8array"));
+  check("approved notice PDFs keep DEMO on every page", await markedPack(output.z, "DEMO"));
   check("submitted form uses the approved copy without DRAFT", !output.r.headers()["content-disposition"].includes("DRAFT") && s3.getForm().getTextField("Text376").getText() === "Changed after approval");
   await status(admin, "Record acknowledgement", "Acknowledged", "2026-11-03"); await status(admin, "Close", "Closed"); check("notice records acknowledgement and close", true); await approvalContext.close(); await hrContext.close();
 }

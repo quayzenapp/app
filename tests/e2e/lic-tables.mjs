@@ -16,7 +16,7 @@ export async function testApplicationTables({ admin, hr, other, check, S }) {
   for (const [name, value] of Object.entries({ 'banks.0.bank': "E2E PRIVATE BANK", 'banks.0.type': "Deposit", 'banks.0.date': "2026-10-01", 'banks.0.amount': "USD 500", 'cv_edu.0.type': "Degree", 'cv_edu.0.inst': "Example University", 'cv_edu.0.year': "2020", 'cv_prof.0.type': "Certification", 'cv_memb.0.type': "Membership", 'cv_work.0.employer': "Example Employer", 'cv_dirs.0.company': "Example Directorship" })) await p.fill(`input[name="${name}"]`, value);
   await savePerson(); const individual = await p.locator('a:text-is("E2E Bank Table Member")').getAttribute("href");
   await go(hr, individual); check("HR direct Apply person URL hides bank rows and values", !(await hr.page.content()).includes("E2E PRIVATE BANK") && !(await hr.page.locator('input[name="banks.0.bank"]').count()));
-  await go(admin, individual); await p.fill('input[name="name"]', ""); await p.click('button:text-is("Save")'); await p.waitForSelector('form .banner.bad');
+  await go(admin, individual); await p.fill('input[name="name"]', ""); await p.click('button:text-is("Save")'); await p.waitForSelector('form > .banner.bad');
   check("person validation error preserves entered tables", (await p.inputValue('input[name="banks.0.bank"]')) === "E2E PRIVATE BANK" && (await p.inputValue('input[name="cv_edu.0.type"]')) === "Degree");
   await p.fill('input[name="name"]', "E2E Bank Table Member");
   const personRequest = p.waitForRequest((req) => req.method() === "POST" && req.headers()["next-action"]);
@@ -39,8 +39,8 @@ export async function testApplicationTables({ admin, hr, other, check, S }) {
   await go(admin, legacy + "?step=people&person=e2e-legacy-corporate");
   check("legacy table editor names the bad field and asks for re-entry", (await p.locator('body').innerText()).includes('Field "c_capital"') && (await p.inputValue('textarea[aria-label="Previously saved c_capital"]')) === "Legacy capital text");
   let blocked = await admin.ctx.request.get(BASE + legacy + "/forms/s1"); check("legacy table export is refused with field name and re-entry message", blocked.status() === 422 && (await blocked.text()).includes('Field "c_capital"'));
-  await p.fill('input[name="c_capital.0.capital"]', "USD 1234"); await p.click('button:text-is("Save")'); await p.waitForSelector('form .banner.bad');
-  check("legacy string cannot be silently overwritten without confirmation", (await p.locator('form .banner.bad').innerText()).includes("re-enter") && (await p.inputValue('input[name="c_capital.0.capital"]')) === "USD 1234");
+  await p.fill('input[name="c_capital.0.capital"]', "USD 1234"); await p.click('button:text-is("Save")'); await p.waitForSelector('form > .banner.bad');
+  check("legacy string cannot be silently overwritten without confirmation", (await p.locator('form > .banner.bad').innerText()).includes("re-enter") && (await p.inputValue('input[name="c_capital.0.capital"]')) === "USD 1234");
   await p.check('input[name="replace:c_capital"]'); await savePerson();
   await go(hr, legacy + "?step=people&person=e2e-legacy-bank"); check("HR legacy editor exposes neither bank data nor Save", !(await hr.page.content()).includes("Legacy private bank text") && !(await hr.page.locator('button:text-is("Save")').count()));
   await go(admin, legacy + "?step=people&person=e2e-legacy-bank");

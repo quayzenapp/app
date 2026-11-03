@@ -1,3 +1,4 @@
+import { markForm } from "@/lib/form-marks";
 import { assertChangeVisible } from "@/lib/lic/export-checks";
 import JSZip from "jszip";
 import { audit, withTenant } from "@/lib/db";
@@ -20,7 +21,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       return { d: stripChange(raw, ctx.sensitive), final: !!snap };
     });
     if (!result) return new Response("Not found", { status: 404 });
-    const out = await buildChange(result.d, ctx.sensitive), problems = out.flatMap((f) => f.check?.problems ?? []);
+    const out = await Promise.all((await buildChange(result.d, ctx.sensitive)).map(f => markForm(f, { approved: result.final, demo: ctx.org.isDemo }))), problems = out.flatMap((f) => f.check?.problems ?? []);
     await withTenant(ctx.org.id, (tx) => audit(tx, { organizationId: ctx.org.id, actorId: ctx.user.id, actorEmail: ctx.user.email, action: "export", entityType: "filings", entityId: id, summary: `Prepared notice forms${result.final ? " from approved copy" : " (draft)"}; ${problems.length} read-back problem(s)` }));
     if (problems.length) return new Response(`The forms failed their read-back and were not downloaded.\n${problems.join("\n")}`, { status: 422 });
     const prefix = `${ctx.org.isDemo ? "DEMO_" : ""}${result.final ? "" : "DRAFT_"}`, zip = new JSZip();

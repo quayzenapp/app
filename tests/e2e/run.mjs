@@ -1,3 +1,4 @@
+import { markedForm } from "./form-marks.mjs";
 import { testChanges } from "./changes.mjs";
 import { chromium } from "playwright";
 import ExcelJS from "exceljs";
@@ -93,6 +94,7 @@ for (const h of unset) {
   if (await admin.page.locator("#ex").count()) await admin.page.fill("#ex", "E2E test");
   await admin.page.click('button:has-text("Save line")'); await admin.page.waitForURL("**" + retUrl, { timeout: 30000 });
 }
+const draftPdf = await admin.ctx.request.get(BASE + retUrl + "/pdf"); check("draft annual return has DRAFT and DEMO on every page", await markedForm(await draftPdf.body(), "return.pdf", "DRAFT / DEMO"));
 await admin.page.click('button:has-text("Mark ready for review")'); await admin.page.waitForFunction(() => document.querySelector(".head .badge")?.innerText === "Ready for review", null, { timeout: 30000 });
 check(`all ${unset.length} remaining lines set; return is ready`, true);
 await admin.page.click('button:has-text("Approve and keep a snapshot")'); await admin.page.waitForSelector(".banner.bad");
@@ -105,6 +107,7 @@ check("lines are locked after approval", (await admin.page.locator('a:has-text("
 let res = await admin.ctx.request.get(BASE + retUrl + "/pdf");
 const hdr = res.headers()["content-disposition"] ?? "";
 check("official PDF downloads, marked DEMO and not DRAFT", res.status() === 200 && hdr.includes("DEMO_Annual_Return") && !hdr.includes("DRAFT"), `${res.status()} ${hdr} ${res.status() === 200 ? "" : await res.text()}`);
+check("approved annual return keeps DEMO on every page", await markedForm(await res.body(), "return.pdf", "DEMO"));
 const pf = (await PDFDocument.load(await res.body())).getForm();
 check("PDF holds the demo figures", pf.getTextField("p1_field_001").getText() === "Demo Company" && pf.getTextField("p2_field_037").getText() === "62,000.00" && pf.getTextField("p3_field_017").getText() === "5", pf.getTextField("p2_field_037").getText());
 check("PDF declarations and signature are blank", !pf.getCheckBox("p4_checkbox_01").isChecked() && !pf.getTextField("p4_field_015").getText());
@@ -185,7 +188,8 @@ await go(admin.page, "/admin/ai/documents");
 await admin.page.fill("#d_title", "E2E large AI doc"); await admin.page.setInputFiles("#d_file", { name: "large.txt", mimeType: "text/plain", buffer: Buffer.from("The Port City licence renewal notice applies to E2E zebra harbour rules. ".repeat(16000)) });
 await admin.page.click('button:has-text("Upload")'); await admin.page.waitForSelector(".card form .banner", { timeout: 60000 });
 t = await admin.page.locator(".card form .banner").first().innerText(); check("an AI document over 1 MB uploads", t.includes("Uploaded"), t);
-let aiStatus = ""; for (let i = 0; i < 30 && !["ready", "failed"].includes(aiStatus); i++) { await admin.page.waitForTimeout(5000); await go(admin.page, "/admin/ai/documents"); aiStatus = (await admin.page.locator('tr:has-text("E2E large AI doc") .badge').last().innerText().catch(() => "")).trim(); }
+// Large-document ingestion can exceed 150 seconds on a busy local worker; still require ready.
+let aiStatus = ""; for (let i = 0; i < 60 && !["ready", "failed"].includes(aiStatus); i++) { await admin.page.waitForTimeout(5000); await go(admin.page, "/admin/ai/documents"); aiStatus = (await admin.page.locator('tr:has-text("E2E large AI doc") .badge').last().innerText().catch(() => "")).trim(); }
 check("it is processed", aiStatus === "ready", aiStatus);
 admin.page.once("dialog", (d) => d.accept());
 await admin.page.locator('tr:has-text("E2E large AI doc") button:has-text("Delete")').click();

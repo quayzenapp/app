@@ -1,3 +1,4 @@
+import { markedForm, markedPack } from "./form-marks.mjs";
 import { testChanges } from "./changes.mjs";
 import { chromium } from "playwright";
 import JSZip from "jszip";
@@ -66,9 +67,11 @@ await admin.page.screenshot({ path: `${S}/apply-overview.png` });
 const form = (s, k) => s.ctx.request.get(`${BASE}${base}/forms/${k}`);
 const pack = await admin.ctx.request.get(`${BASE}${base}/pack`), pz = await JSZip.loadAsync(await pack.body()), pn = Object.keys(pz.files);
 check("the pack holds the forms and a read-me, marked draft", pack.status() === 200 && pn.includes("READ_ME.txt") && pn.some((n) => n.includes("Schedule_I")) && pn.some((n) => n.includes("Technical_Evaluation")) && pn.filter((n) => n !== "READ_ME.txt").every((n) => n.startsWith("DEMO_DRAFT_")), pn.join());
+check("every application pack form has printed DRAFT and DEMO marks", await markedPack(pz, "DRAFT / DEMO"));
 const deniedPack = await finance.ctx.request.get(`${BASE}${base}/pack`); check("application pack refuses populated restricted data instead of silently omitting it", deniedPack.status() === 422 && (await deniedPack.text()).includes("your role cannot see"));
 let fr = await form(admin, "s1");
 check("Schedule I downloads as a draft before approval", fr.status() === 200 && fr.headers()["content-disposition"].includes("DEMO_DRAFT_") && (await fr.body()).subarray(0, 4).toString() === "%PDF", `${fr.status()} ${fr.headers()["content-disposition"]}`);
+check("individual Schedule I has marks on every page", await markedForm(await fr.body(), "s1.pdf", "DRAFT / DEMO"));
 for (const [k, sig] of [["tef", "PK"], ["ap_decl", "PK"], ["ds", "PK"], ["bprofile", "PK"]]) { fr = await form(admin, k); check(`${k} downloads`, fr.status() === 200 && (await fr.body()).subarray(0, 2).toString() === sig, `${fr.status()} ${fr.status() === 200 ? "" : await fr.text()}`); }
 fr = await form(finance, "s1"); check("Schedule I is refused for a role without identity access", fr.status() === 422 && (await fr.text()).includes("your role cannot see"), String(fr.status()));
 fr = await form(other, "s1"); check("another organization can't get the form", fr.status() === 404, String(fr.status()));
@@ -91,6 +94,8 @@ await go(admin.page, base); await admin.page.click('summary:has-text("Record sub
 await admin.page.waitForFunction(() => document.querySelector(".head .badge")?.innerText === "Submitted for preliminary review", null, { timeout: 30000 });
 check("the submission is recorded; nothing is sent", true);
 fr = await admin.ctx.request.get(`${BASE}${base}/forms/s1`); check("after approval the form comes from the fixed copy, without DRAFT", fr.status() === 200 && !fr.headers()["content-disposition"].includes("DRAFT"), fr.headers()["content-disposition"]);
+check("approved demo Schedule I keeps DEMO on every page", await markedForm(await fr.body(), "s1.pdf", "DEMO"));
+const approvedPack = await admin.ctx.request.get(`${BASE}${base}/pack`); check("approved pack keeps DEMO in every Office and PDF form", await markedPack(await JSZip.loadAsync(await approvedPack.body()), "DEMO"));
 await go(admin.page, base + "?step=applicant"); check("a submitted application is locked", (await text(admin.page)).includes("locked") && (await admin.page.locator('button:has-text("Save")').count()) === 0);
 await go(admin.page, base); await admin.page.click('summary:has-text("Commission asked for more information")'); await admin.page.fill('details[open] textarea[name="note"]', "E2E please send more"); await admin.page.click('details[open] button:has-text("Save")');
 await admin.page.waitForFunction(() => document.querySelector(".head .badge")?.innerText === "Further information requested", null, { timeout: 30000 });

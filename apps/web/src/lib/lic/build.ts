@@ -35,5 +35,5 @@ export async function loadGen(ctx: TenantContext, id: string, key?: string) {
   });
   if (!data) return null;
   const store = { ...data.base, list: (t: string) => (t === "app_people" ? data.people : data.base.list(t)) };
-  return { G: createGen(store), a: data.a, final: data.final, prefix: `${ctx.org.isDemo ? "DEMO_" : ""}${data.final ? "" : "DRAFT_"}` };
+  return { state: { approved: data.final, demo: ctx.org.isDemo }, G: createGen(store), a: data.a, final: data.final, prefix: `${ctx.org.isDemo ? "DEMO_" : ""}${data.final ? "" : "DRAFT_"}` };
 }

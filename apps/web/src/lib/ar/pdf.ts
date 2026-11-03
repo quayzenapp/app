@@ -1,3 +1,4 @@
+import { markPdf, type FormState } from "@/lib/form-marks";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { PDFCheckBox, PDFDocument, PDFDropdown, PDFTextField } from "pdf-lib";
@@ -7,7 +8,7 @@ import type { Lines } from "@/lib/ar/store";
 export const FORM_PATH = path.join(process.cwd(), "assets/annual-return-2026.pdf");
 
 /** Fills the Commission's own form, then reads it back to check every value. Declarations, signature and date stay blank. */
-export async function fillAnnualReturnPdf(lines: Lines) {
+export async function fillAnnualReturnPdf(lines: Lines, state: FormState = { approved: false, demo: false }) {
   const pdf = await PDFDocument.load(await readFile(FORM_PATH));
   const form = pdf.getForm();
   const { values, checks, manual } = arPdfValues(lines);
@@ -24,7 +25,7 @@ export async function fillAnnualReturnPdf(lines: Lines) {
     try { const c = form.getCheckBox(k); if (on) c.check(); else c.uncheck(); } catch { problems.push(`${k}: tick box not found`); }
   }
   form.updateFieldAppearances();
-  const out = await pdf.save();
+  const out = await markPdf(await pdf.save(), state);
 
   const back = await PDFDocument.load(out);
   const bf = back.getForm();

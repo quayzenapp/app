@@ -1,3 +1,4 @@
+import { markForm } from "@/lib/form-marks";
 import JSZip from "jszip";
 import { NextResponse } from "next/server";
 import { audit, withTenant } from "@/lib/db";
@@ -20,7 +21,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     try {
       const r = await build(g.G, g.a), files: Out[] = Array.isArray(r) ? r : [r], problems = files.flatMap((f) => f.check?.problems ?? []);
       if (problems.length) { out.push(`${key}: failed its check, so it was left out (${problems[0]})`); continue; }
-      for (const f of files) { zip.file(`${g.prefix}${f.name}`, await f.blob.arrayBuffer()); inc.push(`${g.prefix}${f.name}`); }
+      const marked = await Promise.all(files.map(f => markForm(f, g.state)));
+      for (const f of marked) { zip.file(`${g.prefix}${f.name}`, await f.blob.arrayBuffer()); inc.push(`${g.prefix}${f.name}`); }
     } catch (e) { out.push(`${key}: ${Array.isArray(e) ? e.join(" ") : (e as Error).message}`); }
   }
   const name = String(((g.a as { p1?: { name?: string } }).p1)?.name ?? "application");

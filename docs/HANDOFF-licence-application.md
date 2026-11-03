@@ -1,5 +1,7 @@
 # Brief: finishing the product
 
+**Do `docs/HANDOFF-workflow-and-forms.md` first.** It holds later product decisions and comes before renewal. Where the two differ, it wins.
+
 Read `AGENTS.md` first. Do **one item at a time**, on the branch `feature/licence-application`. After each item: run the definition of done, commit on that branch (end the message with a `Co-Authored-By` line naming your own model), update `docs/STATUS.md`, report what's done, what isn't, and any test that failed, and **stop for review**. Don't push or merge.
 
 ## Sources

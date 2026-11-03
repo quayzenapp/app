@@ -18,7 +18,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   });
   if (!data) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const { r, snap } = data, company = await loadCompany(ctx.org.id);
-  const { bytes, check } = await fillAnnualReturnPdf((snap ? snap.lines : r.lines) as Lines);
+  const { bytes, check } = await fillAnnualReturnPdf((snap ? snap.lines : r.lines) as Lines, { approved: !!snap, demo: ctx.org.isDemo });
   const name = `${company.is_demo ? "DEMO_" : ""}${snap ? "" : "DRAFT_"}Annual_Return_2026_${fileSafe(company.name)}.pdf`;
   await withTenant(ctx.org.id, (tx) => audit(tx, { organizationId: ctx.org.id, actorId: ctx.user.id, actorEmail: ctx.user.email, action: "pdf", entityType: "returns", entityId: r.id, summary: `${name}: ${check.filled} fields filled, ${check.problems.length} problem(s)` }));
   // A form that failed its read-back must never reach someone who might submit it.
