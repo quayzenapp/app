@@ -50,6 +50,15 @@ await go(admin.page, base + "?step=checklist"); check("the document checklist li
 await admin.page.selectOption('select[name="st:fee"]', "Ready"); t = await saved(admin.page); check("the checklist saves", t.includes("Saved"), t);
 await go(admin.page, base); t = await text(admin.page); check("the overview shows progress", t.includes("Steps complete") && t.includes("What's left") && /1 of \d+\s*Supporting/.test(t), t.slice(0, 400));
 await admin.page.screenshot({ path: `${S}/apply-overview.png` });
+const form = (s, k) => s.ctx.request.get(`${BASE}${base}/forms/${k}`);
+let fr = await form(admin, "s1");
+check("Schedule I downloads as a draft before approval", fr.status() === 200 && fr.headers()["content-disposition"].includes("DEMO_DRAFT_") && (await fr.body()).subarray(0, 4).toString() === "%PDF", `${fr.status()} ${fr.headers()["content-disposition"]}`);
+for (const [k, sig] of [["tef", "PK"], ["ap_decl", "PK"], ["ds", "PK"], ["bprofile", "PK"]]) { fr = await form(admin, k); check(`${k} downloads`, fr.status() === 200 && (await fr.body()).subarray(0, 2).toString() === sig, `${fr.status()} ${fr.status() === 200 ? "" : await fr.text()}`); }
+fr = await form(finance, "s1"); check("Schedule I is refused for a role without identity access", fr.status() === 422 && (await fr.text()).includes("your role cannot see"), String(fr.status()));
+fr = await form(other, "s1"); check("another organization can't get the form", fr.status() === 404, String(fr.status()));
+fr = await form(admin, "s9"); check("an unknown form isn't found", fr.status() === 404);
+await go(admin.page, base + "?step=forms"); check("the Forms step lists the Commission's forms", (await admin.page.locator('.qz-table a:has-text("Download")').count()) === 6);
+await go(admin.page, base);
 await admin.page.click('summary:has-text("Mark ready for review")'); await admin.page.click('details[open] button:has-text("Save")');
 await admin.page.waitForFunction(() => document.querySelector(".head .badge")?.innerText === "Ready for review", null, { timeout: 30000 });
 check("it goes for review even with gaps, saying so", true);
@@ -65,6 +74,7 @@ await go(reviewer.page, base); reviewer.page.once("dialog", (d) => d.accept()); 
 await go(admin.page, base); await admin.page.click('summary:has-text("Record submission")'); await admin.page.click('details[open] button:has-text("Save")');
 await admin.page.waitForFunction(() => document.querySelector(".head .badge")?.innerText === "Submitted for preliminary review", null, { timeout: 30000 });
 check("the submission is recorded; nothing is sent", true);
+fr = await admin.ctx.request.get(`${BASE}${base}/forms/s1`); check("after approval the form comes from the fixed copy, without DRAFT", fr.status() === 200 && !fr.headers()["content-disposition"].includes("DRAFT"), fr.headers()["content-disposition"]);
 await go(admin.page, base + "?step=applicant"); check("a submitted application is locked", (await text(admin.page)).includes("locked") && (await admin.page.locator('button:has-text("Save")').count()) === 0);
 await go(admin.page, base); await admin.page.click('summary:has-text("Commission asked for more information")'); await admin.page.fill('details[open] textarea[name="note"]', "E2E please send more"); await admin.page.click('details[open] button:has-text("Save")');
 await admin.page.waitForFunction(() => document.querySelector(".head .badge")?.innerText === "Further information requested", null, { timeout: 30000 });
