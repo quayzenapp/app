@@ -1,3 +1,4 @@
+import { testChanges } from "./changes.mjs";
 import { chromium } from "playwright";
 import ExcelJS from "exceljs";
 import { PDFDocument } from "pdf-lib";
@@ -363,4 +364,5 @@ await plat.page.fill('input[name="name"]', "New Person"); await plat.page.fill('
 t = await plat.page.locator(".banner.info,.banner.bad").first().innerText(); check("user created in Keycloak with a temporary password", t.includes("Temporary password"), t);
 await plat.page.click('.tgroup button:has-text("Sign out")'); await plat.page.waitForURL(/8180/, { timeout: 30000 });
 check("sign-out ends the Keycloak session too", (await plat.page.locator("#username").count()) === 1);
+await testChanges({ admin, reviewer, finance, other, adviser, check, S });
 console.log(fails ? `\n${fails} FAILED` : "\nAll E2E checks passed"); await browser.close(); process.exit(fails ? 1 : 0);

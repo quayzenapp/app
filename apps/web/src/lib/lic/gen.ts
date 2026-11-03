@@ -431,5 +431,5 @@ async function buildBusinessPlan(a, fmt = "pdf") {
 
 /* ---------- application outputs: original format plus Word / PDF / Excel copies ---------- */
 
-return { buildSchedule1, buildTef, buildApDeclaration, buildUboDeclarations, buildDsInfo, buildBusinessProfile, fillPdfForm, FORM_SRC, fileSafe, fillSpecForm, S1 };
+return { buildSchedule1, buildTef, buildApDeclaration, buildUboDeclarations, buildDsInfo, buildBusinessProfile, fillPdfForm, FORM_SRC, fileSafe, fillSpecForm, S1, s1Part3, s1Part45 };
 }

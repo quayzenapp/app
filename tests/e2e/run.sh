@@ -13,6 +13,9 @@ DELETE FROM records WHERE data->>'data_source'='From licence application' AND "o
 UPDATE organizations SET profile = profile - 'main_licence_id' WHERE slug='demo-company';
 DELETE FROM application_snapshots WHERE "applicationId" IN (SELECT id FROM applications WHERE title LIKE 'E2E%');
 DELETE FROM application_people WHERE "applicationId" IN (SELECT id FROM applications WHERE title LIKE 'E2E%');
+DELETE FROM audit_logs WHERE "entityType"='filings' AND "entityId" IN (SELECT id FROM licence_filings WHERE title LIKE 'E2E%');
+DELETE FROM filing_snapshots WHERE "filingId" IN (SELECT id FROM licence_filings WHERE title LIKE 'E2E%');
+DELETE FROM licence_filings WHERE title LIKE 'E2E%';
 DELETE FROM applications WHERE title LIKE 'E2E%';
 UPDATE organizations SET stage = 'licensed' WHERE slug = 'demo-company';
 DELETE FROM business_plans WHERE "versionNo" > 1 AND "organizationId" IN (SELECT id FROM organizations WHERE slug='demo-company');

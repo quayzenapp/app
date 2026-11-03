@@ -41,7 +41,11 @@ Stages 1 and 2 and most of Stage 3 are **done**: see `docs/STATUS.md` and `git l
 - Importing people from the company register (`ap-import-people`), and suggestions from the company profile (`app-sug`, the `sug` key in the specs).
 - Editable Word and PDF copies of forms (`model` in `APP_OUTPUTS`, `lic_gen.js`), the Section 64 letter, draft board resolutions and the summary report.
 
-**Stage 4: Licence Changes.** The `changes` section in `src/lib/sections.ts` is still a placeholder. Notice of change (Schedule III), renewal (Schedule V), Schedule IV and surrender (Schedule VI), with Offshore Forms III and V where they apply: `lic_filings.js`. `createLic` already exposes `FILING_KINDS`, `FILING_STATUS` and `S3_ITEMS`. Port the same way as `src/lib/lic/gen.ts`.
+**Stage 4: Licence Changes (part).** `/changes` now has Notice of Change (Schedule III), optional offshore Form III, new-member Schedule I profiles, a 30-day deadline, review/approval with a fixed copy, manual submission/acknowledgement records, and PDF pack generation with read-back. Source: `lic_filings.js`; implementation: `src/lib/lic/change-*.ts`, `src/lib/lic/changes.ts`, `src/app/(app)/changes/`.
+
+The next filing is **renewal (Schedule V)**. After it: Schedule IV, then surrender (Schedule VI with offshore Form V). `createLic` exposes `FILING_KINDS`, `FILING_STATUS` and `S3_ITEMS`. Editable Word/PDF copies and one-click register suggestions for the notice are not built.
+
+**Source discrepancy requiring review:** offshore Form III, representative cessation date (`arc.date`, PDF field `Text43`), is labelled DD/MM/YY in the original PDF. The artifact fills DD/MM/YYYY. The notice pack refuses delivery if this date is entered, pending a reviewed mapping decision. Do not silently change it. No compliance professional has reviewed this feature.
 
 **After that, the remaining placeholder sections, one at a time:** Development approvals (`x_dev.js`; forms `d1`, `p1` to `p6`, `caa`), Checklists (`x_check.js`), How It Works (`x_flow.js`, `x_sysmap.js`), the visa workflow and landing endorsement form (`x_visa.js`, `le`), Commission request approvals (`pages1.js`), office space comparison (`space.js`), capital inflow targets (end of `budget.js`), section overviews (`insights.js`, `overviews.js`). Then the production items in `docs/STATUS.md`.
 

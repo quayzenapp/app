@@ -1,3 +1,4 @@
+import { testChanges } from "./changes.mjs";
 import { chromium } from "playwright";
 import JSZip from "jszip";
 import { createHash } from "node:crypto";
@@ -108,4 +109,5 @@ await go(other.page, "/dashboard"); check("the applicant's dashboard shows the a
 await go(adviser.page, base); check("an adviser can read but not act", (await adviser.page.locator('summary:has-text("Mark ready")').count()) === 0 && (await adviser.page.locator('.tab:has-text("People")').count()) === 1);
 await go(adviser.page, base + "?step=applicant"); check("... and has no Save", (await adviser.page.locator('button:has-text("Save")').count()) === 0);
 for (const [n, s] of [["admin", admin], ["reviewer", reviewer], ["finance", finance]]) check(`no client errors for ${n}`, s.errs.length === 0, s.errs.join(" | ").slice(0, 300));
+await testChanges({ admin, reviewer, finance, other, adviser, check, S });
 console.log(fails ? `\n${fails} FAILED` : "\nAll licence browser checks passed"); await browser.close(); process.exit(fails ? 1 : 0);

@@ -63,6 +63,14 @@ async function main() {
   check("milestone progress on a locked plan can still be saved", !(await refused(() => withTenant(demo.id, (tx) => tx.businessPlan.update({ where: { id: plan.id }, data: { milestones: ms as object[] } })))));
   await withTenant(demo.id, (tx) => tx.businessPlan.update({ where: { id: plan.id }, data: { milestones: plan.milestones as object[] } }));
 
+  check("no tenant set: filings and fixed copies are hidden", (await db.licenceFiling.count()) === 0 && (await db.filingSnapshot.count()) === 0);
+  const filing = await withTenant(demo.id, (tx) => tx.licenceFiling.create({ data: { organizationId: demo.id, title: "E2E isolation filing" } }));
+  const copy = await withTenant(demo.id, (tx) => tx.filingSnapshot.create({ data: { organizationId: demo.id, filingId: filing.id, versionNo: 1, body: {}, hash: "test", approvedById: "test" } }));
+  check("other tenant cannot read or mutate a filing by ID", (await withTenant(harbour.id, (tx) => tx.licenceFiling.findFirst({ where: { id: filing.id, organizationId: demo.id } }))) === null && (await withTenant(harbour.id, (tx) => tx.licenceFiling.updateMany({ where: { id: filing.id, organizationId: demo.id }, data: { title: "tamper" } }))).count === 0);
+  check("other tenant cannot read a filing snapshot", (await withTenant(harbour.id, (tx) => tx.filingSnapshot.findFirst({ where: { id: copy.id, organizationId: demo.id } }))) === null);
+  check("filing snapshot cannot be overwritten or deleted, even directly", await refused(() => withTenant(demo.id, (tx) => tx.filingSnapshot.updateMany({ where: { id: copy.id, organizationId: demo.id }, data: { hash: "tamper" } }))) && await refused(() => withTenant(demo.id, (tx) => tx.filingSnapshot.deleteMany({ where: { id: copy.id, organizationId: demo.id } }))));
+  check("RLS rejects a filing for a different tenant", await refused(() => withTenant(demo.id, (tx) => tx.licenceFiling.create({ data: { organizationId: harbour.id, title: "E2E bad tenant" } }))));
+
   const roles = await db.role.findMany({ where: { organizationId: demo.id } });
   const role = (k: string) => roles.find((r) => r.key === k)!;
   const perms = (k: string) => role(k).permissions as Record<string, string>;

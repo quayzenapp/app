@@ -363,3 +363,35 @@ model ApplicationSnapshot {
   @@index([organizationId, applicationId])
   @@map("application_snapshots")
 }
+
+/// Row level security enforced. Notice of change; data holds items, o3 and people.
+model LicenceFiling {
+  id String @id @default(cuid())
+  organizationId String
+  title String
+  kind String @default("change")
+  status String @default("Draft")
+  data Json @default("{}")
+  events Json @default("[]")
+  dueDate String?
+  updatedById String?
+  snapshotId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([organizationId])
+  @@map("licence_filings")
+}
+
+/// Row level security enforced. App may insert/read, never update/delete.
+model FilingSnapshot {
+  id String @id @default(cuid())
+  organizationId String
+  filingId String
+  versionNo Int
+  body Json
+  hash String
+  approvedById String
+  createdAt DateTime @default(now())
+  @@unique([organizationId, filingId, versionNo])
+  @@map("filing_snapshots")
+}

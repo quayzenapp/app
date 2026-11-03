@@ -5,15 +5,16 @@ import { createLic } from "@/lib/lic/core";
 import type { State } from "@/app/(app)/apply/actions";
 
 const L = createLic();
-type Spec = { k: string; l: string; t: string; ref?: string; ch?: string[] | ((a: unknown) => string[]); help?: string; need?: boolean; when?: (a: unknown) => boolean; g?: string; sens?: string };
+type Spec = { k: string; l: string; t: string; ref?: string; ch?: string[] | ((a: unknown) => string[]); help?: string; need?: boolean; when?: (a: unknown) => boolean; g?: string; sens?: string; rows?: number; cols?: [string, string][] };
 type Rec = Record<string, unknown> & { marks?: Record<string, string> };
 
-function Field({ f, rec, v, mark, disabled, onChange }: { f: Spec; rec: Rec; v: unknown; mark?: string; disabled: boolean; onChange: (x: unknown) => void }) {
+function Field({ f, rec, v, mark, disabled, onChange, rowFields }: { f: Spec; rec: Rec; v: unknown; mark?: string; disabled: boolean; onChange: (x: unknown) => void; rowFields?: boolean }) {
   const id = `f_${f.k.replace(/\W/g, "_")}`;
   const ch = typeof f.ch === "function" ? f.ch(rec) : f.ch ?? [];
   const off = disabled || !!mark;
   let input;
-  if (f.t === "area") input = <textarea id={id} name={f.k} rows={3} defaultValue={String(v ?? "")} disabled={off} />;
+  if (f.t === "rows" && rowFields) input = <div className="qz-scroll"><table className="qz-table"><thead><tr>{f.cols?.map(([k, label]) => <th key={k}>{label}</th>)}</tr></thead><tbody>{Array.from({ length: f.rows ?? 1 }, (_, i) => <tr key={i}>{f.cols?.map(([k, label]) => <td key={k}><input name={`${f.k}.${i}.${k}`} aria-label={`${f.l} ${i + 1} ${label}`} defaultValue={String((Array.isArray(v) ? v[i]?.[k] : "") ?? "")} disabled={off} /></td>)}</tr>)}</tbody></table></div>;
+  else if (f.t === "area") input = <textarea id={id} name={f.k} rows={3} defaultValue={String(v ?? "")} disabled={off} />;
   else if (f.t === "choice" || f.t === "yn") { const opts = f.t === "yn" ? ["Yes", "No"] : ch; input = <select id={id} name={f.k} value={String(v ?? "")} disabled={off} onChange={(e) => onChange(e.target.value || null)}><option value="">—</option>{opts.map((o) => <option key={o}>{o}</option>)}{!!v && !opts.includes(String(v)) && <option>{String(v)}</option>}</select>; }
   else if (f.t === "multi") input = <div className="mchk" id={id}>{ch.map((o) => <label key={o} style={{ display: "block" }}><input type="checkbox" name={f.k} value={o} checked={((v as string[]) ?? []).includes(o)} disabled={off} onChange={(e) => { const cur = (v as string[]) ?? []; onChange(e.target.checked ? [...cur, o] : cur.filter((x) => x !== o)); }} /> {o}</label>)}</div>;
   else if (f.t === "check") input = <label className="radio"><input type="checkbox" id={id} name={f.k} value="1" checked={!!v} disabled={off} onChange={(e) => onChange(e.target.checked)} /> Yes</label>;
@@ -31,7 +32,7 @@ function Field({ f, rec, v, mark, disabled, onChange }: { f: Spec; rec: Rec; v: 
 }
 
 /** Fields come from the artifact's specs. `when` is re-checked as the person types, so only what applies is shown. */
-export function SpecFields({ specKeys, kind, initial, action, disabled, submit, hidden = [], extra }: { specKeys: string; kind: "app" | "person"; initial: Rec; action: (s: State, f: FormData) => Promise<State>; disabled: boolean; submit: string; hidden?: string[]; extra?: React.ReactNode }) {
+export function SpecFields({ specKeys, kind, initial, action, disabled, submit, hidden = [], extra, rowFields = false }: { specKeys: string; kind: "app" | "person"; initial: Rec; action: (s: State, f: FormData) => Promise<State>; disabled: boolean; submit: string; hidden?: string[]; extra?: React.ReactNode; rowFields?: boolean }) {
   const [a, setA] = useState<Rec>(initial);
   const specs: Spec[] = kind === "app" ? L.APP_SPEC.filter((f: { step: string }) => f.step === specKeys) : L.PERSON_SPEC.filter((f: Spec) => !hidden.includes(f.k));
   const groups = kind === "person" ? (L.personGroups(a, initial.__app) as string[]) : [""];
@@ -39,7 +40,7 @@ export function SpecFields({ specKeys, kind, initial, action, disabled, submit, 
     <fieldset key={g}>
       {kind === "person" && <><legend>{L.PERSON_GROUP_LABELS[g]?.[0]}</legend><p className="help">{L.PERSON_GROUP_LABELS[g]?.[1]}</p></>}
       <div className="grid2">
-        {specs.filter((f) => (kind === "app" || f.g === g) && (!f.when || f.when(a))).map((f) => <Field key={f.k} f={f} rec={a} v={kind === "app" ? L.getPath(a, f.k) : a[f.k]} mark={a.marks?.[f.k]} disabled={disabled} onChange={(x) => setA((p) => { const n = JSON.parse(JSON.stringify(p)); if (kind === "app") L.setPath(n, f.k, x); else n[f.k] = x; return n; })} />)}
+        {specs.filter((f) => (kind === "app" || f.g === g) && (!f.when || f.when(a))).map((f) => <Field rowFields={rowFields} key={f.k} f={f} rec={a} v={kind === "app" ? L.getPath(a, f.k) : a[f.k]} mark={a.marks?.[f.k]} disabled={disabled} onChange={(x) => setA((p) => { const n = JSON.parse(JSON.stringify(p)); if (kind === "app") L.setPath(n, f.k, x); else n[f.k] = x; return n; })} />)}
       </div>
     </fieldset>
   ));

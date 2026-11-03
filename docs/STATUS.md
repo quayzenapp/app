@@ -20,6 +20,7 @@ Last updated: 2026-11-03
 - Licence application, Stage 1: applications with field specs from the artifact (`src/lib/lic/core.ts`), people with restricted fields, proposal, projections, profile, declarations, document checklist, readiness, second-person approval with a fixed copy, status history, dashboard card, demo applicant in Harbourline. Tests: `pnpm test:lic`, `tests/e2e/run.sh lic`.
 - Licence application, Stage 2: Schedule I, Technical Evaluation Form, AP and UBO declarations, directors form and business profile, filled inside the Commission's original files from `src/lib/lic/gen.ts`. Drafts are marked DRAFT; after approval the fixed copy is used. Tests: `pnpm test:forms`. Word and PDF editable copies aren't built.
 - Licence application, Stage 3 (part): file upload on each checklist line, stored as documents linked to the application; the application pack ZIP; setting up company profile, licence, people and office records from an issued licence.
+- Licence changes, Stage 4 (part): Notice of Change on `/changes`, Schedule III items A–K with the official row limits and a 30-day deadline from the earliest change, optional offshore Form III, new-member profiles and Schedule I Parts III/IV/V, second-person approval with an immutable copy and fingerprint, manual submission/acknowledgement/close records, locking after submission, and an audited original-PDF pack with read-back and continuation sheets. Restricted change rows and profile fields are stripped before display/export and preserved on lower-role edits. One offshore date mapping is blocked pending review (below). No compliance professional has reviewed this feature.
 - Registers: Excel export (restricted fields left out by role) and all-or-nothing Excel import. Company profile.
 - OpenRouter answers tested with the free auto-router: real cited answers in 3 to 8 seconds.
 - Demo: Demo Company and Harbourline, 8 users. Password `Demo@12345`, development only.
@@ -32,6 +33,11 @@ Last updated: 2026-11-03
 ## Known polish items
 - Sign-in card renders about 320px wide, so "Remember me" wraps. Width rules in the Keycloak theme CSS had no visible effect; it works but needs another look (Keycloak may be caching the stylesheet, or a parent element is constraining it).
 
+## Licence changes: remaining review and work
+- Offshore Form III representative cessation date (`arc.date`, PDF `Text43`): the original PDF says DD/MM/YY, while the artifact fills DD/MM/YYYY. Downloads using this field are refused pending a reviewed mapping decision; other notices can be prepared. The discrepancy has been raised for review, not silently changed.
+- Next filing: renewal (Schedule V), then Schedule IV and surrender (Schedule VI with offshore Form V). Editable notice copies and one-click register suggestions are not built. The earlier Stage 3 gaps remain in the handoff.
+- Verification on 2026-11-03: the complete AGENTS.md type-check/unit/isolation/build command passed (exit 0); `./tests/e2e/run.sh` reported `All E2E checks passed` (exit 0); `./tests/e2e/run.sh lic` reported `All licence browser checks passed` (exit 0). Notice screenshots in `tests/e2e/shots/` were inspected. Earlier browser test assumptions about collapsed fields, option disabled state, action redirects and seeded reviewer permissions were corrected; no failing tests remain. Local tests needed execution outside the sandbox for database/Docker/IPC access. The app was restarted after Prisma generation.
+
 ## Next task
 See `docs/HANDOFF-licence-application.md`, which lists exactly what is left. Original forms are in `apps/web/assets/forms/`, decoded by `tools/extract_forms.py`.
 
@@ -43,7 +49,7 @@ Each needs its logic ported from `docs/artifact/src/`. See the `quayzen-product`
 4. Office space comparison: `space.js`
    Capital inflow targets, in the investment section: end of `budget.js`
    Business plan parts tied to the licence application come with it: linked plan from an application, the plan document builder, Technical Evaluation Form import: `x_bplink.js`, `x_bpb.js`. Today's Excel import reads the Quayzen template only.
-5. Licence application and changes, 21 Commission forms: `lic_*.js`, `x_pkg.js`, `js/forms/*.js`
+5. Remaining licence application and changes work, including renewal, Schedule IV and surrender: `lic_*.js`, `x_pkg.js`, `js/forms/*.js`
 6. Development approvals, visas workflow, checklists, How It Works: `x_dev.js`, `x_visa.js`, `x_check.js`, `x_flow.js`, `x_sysmap.js`
 7. Production: web Dockerfile, real secrets, HTTPS, Keycloak production mode, backups, S3, email for invitations and password resets, rate limiting. Files are on local disk (`STORAGE_DIR`), so they need a shared volume and backups, or S3 through `src/lib/storage.ts`. No virus scanning of uploads yet.
 
