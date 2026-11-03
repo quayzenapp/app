@@ -30,6 +30,8 @@ export async function saveDocument(id: string | null, link: { type: string; id: 
       if (id) {
         const r = await tx.document.updateMany({ where: { ...visibleWhere(ctx), id }, data });
         if (!r.count) throw new Error("This document no longer exists.");
+      } else if (link?.type === "bplans") {
+        if (!(await tx.businessPlan.findFirst({ where: { id: link.id, organizationId: ctx.org.id } }))) throw new Error("The linked plan wasn't found.");
       } else if (link) {
         // The link must point at a record of this organization, in a form that exists.
         const form = (await getForms(ctx.org.id)).find((x) => x.key === link.type);

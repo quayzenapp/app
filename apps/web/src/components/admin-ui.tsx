@@ -1,12 +1,29 @@
 "use client";
-import { useActionState } from "react";
+import { startTransition, useActionState, useEffect, useRef, type FormEvent } from "react";
 import type { ActionState } from "@/app/admin/actions";
+
+/**
+ * React resets a form after its action finishes, even when validation failed, which wipes what the person typed.
+ * This submits by hand, so input survives an error, and clears only on success. `action` stays for submits before hydration.
+ */
+export function useFormKeepingInput(run: (f: FormData) => void, success: unknown, ask?: string) {
+  const ref = useRef<HTMLFormElement>(null);
+  useEffect(() => { if (success) ref.current?.reset(); }, [success]);
+  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (ask && !window.confirm(ask)) return;
+    const data = new FormData(e.currentTarget);
+    startTransition(() => run(data));
+  };
+  return { ref, onSubmit };
+}
 
 /** A form whose server action reports success or an error inline. */
 export function ActionForm({ action, children, className, submit, confirm: ask }: { action: (s: ActionState, f: FormData) => Promise<ActionState>; children?: React.ReactNode; className?: string; submit: string; confirm?: string }) {
   const [state, run, pending] = useActionState(action, {});
+  const { ref, onSubmit } = useFormKeepingInput(run, state.ok, ask);
   return (
-    <form action={run} className={className} onSubmit={(e) => { if (ask && !window.confirm(ask)) e.preventDefault(); }}>
+    <form ref={ref} action={run} className={className} onSubmit={onSubmit}>
       {children}
       <button className="btn sm" disabled={pending}>{pending ? "Working…" : submit}</button>
       {state.error && <div className="banner bad" role="alert">{state.error}</div>}

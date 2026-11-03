@@ -33,5 +33,8 @@ To see a class in use, search `docs/artifact/src/` (for example `app.js` for the
 3. Professional background gradient ending abruptly on long pages: `html[data-look=pro] body` gets `background-attachment: fixed`.
 4. Sign-in demo buttons and "Create company": replaced by email and password.
 
+## SEZ wording
+"Port City" displays as "SEZ" everywhere (`components/sez-wording.tsx`, `sezDeep` in reports). Never change saved values, the Commission's name or official forms. Exports meant for re-import keep the raw values.
+
 ## Product name
 UI label is "Ask Quayza" and the icon is `quayza`, as in the artifact. The label lives in one constant (`ASSISTANT_NAME` in `src/lib/sections.ts`; the service has `NAME` in `services/ai/app/chat.py`).

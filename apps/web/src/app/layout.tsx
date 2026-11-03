@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
+import { SezWording } from "@/components/sez-wording";
 import { ThemeProvider, type Look, type ThemeChoice } from "@/components/theme";
 import "./globals.css";
 
@@ -22,7 +23,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="stylesheet" href={FONTS} />
         <script dangerouslySetInnerHTML={{ __html: PREPAINT }} />
       </head>
-      <body><ThemeProvider look={look} choice={choice}>{children}</ThemeProvider></body>
+      <body>
+        {/* The artifact's hand-drawn effect for Pencil charts. */}
+        <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden="true"><filter id="qz-wobble" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency=".04" numOctaves="2" seed="4" result="t" /><feDisplacementMap in="SourceGraphic" in2="t" scale="2.6" xChannelSelector="R" yChannelSelector="G" /></filter></svg>
+        <ThemeProvider look={look} choice={choice}>{children}</ThemeProvider><SezWording />
+      </body>
     </html>
   );
 }

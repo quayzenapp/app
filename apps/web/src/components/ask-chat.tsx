@@ -65,7 +65,7 @@ export function AskChat() {
           <div key={i} className={`msg ai${m.error ? " err" : ""}`}>
             {m.pending && !m.content ? <span className="typing">Looking through the documents…</span> : <div style={{ whiteSpace: "pre-wrap" }}>{m.content}</div>}
             {m.error && <div className="help">{m.error}{m.sources?.length ? " The passages found are listed below, so you can read them directly." : ""}</div>}
-            {!!m.sources?.length && !m.pending && <div className="srcs"><span className="small muted">Sources:</span>{m.sources.map((s) => <button key={s.id} type="button" className="cite" onClick={() => setOpen(s)}>{s.id} · {s.ref}</button>)}</div>}
+            {!!m.sources?.length && <div className="srcs"><span className="small muted">Sources:</span>{m.sources.map((s) => <button key={s.id} type="button" className="cite" onClick={() => setOpen(s)}>{s.id} · {s.ref}</button>)}</div>}
           </div>
         ))}
       </div>

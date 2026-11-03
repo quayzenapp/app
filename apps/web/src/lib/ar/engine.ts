@@ -111,7 +111,7 @@ export const AR_TEMPLATE = (function () {
 })();
 
 /* ---------------- money helpers (cents to avoid floating errors) ---------------- */
-const toC = v => Math.round(Number(v) * 100);
+export const toC = v => Math.round(Number(v) * 100);
 const fromC = c => c / 100;
 
 function arEntries(st, period, cats, group) {
@@ -140,7 +140,7 @@ function methodNote(method, cur) {
   return ` Full total converted to ${cur}.`;
 }
 
-function activeOffices(st, date) {
+export function activeOffices(st, date) {
   return st.list("offices").filter(o => o.status !== "Planned" && (!o.in_use_from || o.in_use_from <= date) && (!o.in_use_to || o.in_use_to >= date))
     .sort((a, b) => (a.location === "Inside Colombo Port City" ? 0 : 1) - (b.location === "Inside Colombo Port City" ? 0 : 1) || (a.name || "").localeCompare(b.name || ""));
 }

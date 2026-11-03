@@ -1,11 +1,21 @@
 import Link from "next/link";
 import { HeroArt, Pic } from "@/components/theme";
 import { withTenant } from "@/lib/db";
-import { visibleWhere } from "@/lib/documents";
+import { canRestricted, visibleWhere } from "@/lib/documents";
+import { addDays } from "@/lib/budget-engine";
+import { budgetRow, loadBudgetEngine } from "@/lib/budget-store";
+import { fmtK, fmtNum, pct } from "@/lib/charts";
+import { createReports } from "@/lib/reports/engine";
+import { loadReportStore } from "@/lib/reports/store";
 import { daysUntil, fmtDate, todayISO } from "@/lib/forms";
 import { can, requirePermission } from "@/lib/tenant";
 
 type D = Record<string, string | number | null | undefined>;
+function Meter({ label, actual, plan, fmt }: { label: string; actual: number | null; plan: number | null; fmt: (v: number | null) => string }) {
+  if (plan == null) return <div className="mt"><div className="mtl"><b>{label}</b><span>{fmt(actual)} actual · no plan figure</span></div></div>;
+  const max = Math.max(actual ?? 0, plan, 1), p = pct(actual ?? 0, plan);
+  return <div className="mt"><div className="mtl"><b>{label}</b><span>{fmt(actual)} of {fmt(plan)} planned · <b className={p >= 100 ? "okt" : p >= 75 ? "" : "wt"}>{p}%</b></span></div><div className="mtt"><i style={{ width: `${pct(actual ?? 0, max)}%` }} /><s style={{ left: `${pct(plan, max)}%` }} title={`Plan: ${fmt(plan)}`} /></div></div>;
+}
 type Rem = { kind: string; icon: string; title: string; due: string; detail?: string; href: string; days: number };
 
 function Stat({ value, label, section, warn }: { value: string | number; label: string; section: string; warn?: boolean }) {
@@ -24,10 +34,16 @@ export default async function Dashboard() {
   const ctx = await requirePermission("dashboard");
   const today = todayISO();
   const canM = (m: string) => can(ctx, m);
-  const { rows, latest, docs } = await withTenant(ctx.org.id, async (tx) => ({
+  const { rows, latest, docs, plan, budget } = await withTenant(ctx.org.id, async (tx) => ({
     rows: await tx.record.findMany({ where: { organizationId: ctx.org.id, archivedAt: null } }),
     latest: canM("returns") ? await tx.annualReturn.findFirst({ where: { organizationId: ctx.org.id }, orderBy: { periodEnd: "desc" } }) : null,
     docs: canM("documents") ? await tx.document.findMany({ where: { ...visibleWhere(ctx), expiryDate: { not: null } } }) : [],
+    plan: canM("bplan") ? await (async () => { const eng = createReports(await loadReportStore(tx, ctx), () => canRestricted(ctx)), v = eng.referencePlan(); return v ? { v, years: eng.comparePlan(v) } : null; })() : null,
+    budget: canM("budget") ? await (async () => {
+      const eng = await loadBudgetEngine(tx, ctx.org.id);
+      const b = (await tx.budget.findMany({ where: { organizationId: ctx.org.id } })).find((x) => x.fyStart <= today && eng.addMonths(x.fyStart, 12) > today);
+      return b ? { b, F: eng.budgetFigures(budgetRow(b), today), end: addDays(eng.addMonths(b.fyStart, 12), -1) } : null;
+    })() : null,
   }));
   const list = (k: string) => rows.filter((r) => r.formKey === k);
   const data = (k: string) => list(k).map((r) => r.data as D);
@@ -73,6 +89,8 @@ export default async function Dashboard() {
         </div>
         <div>
           {lic && <div className="card lic-card"><LicRing lic={lic} /><div><h3>Licence</h3><p><b>{lic.title}</b> {lic.number} <span className="badge ok">{lic.status}</span></p><p className="small muted">Issued {fmtDate(lic.issue_date) || "—"} · expires {fmtDate(lic.expiry_date)}</p></div></div>}
+          {budget && <div className="card"><h3>{budget.b.title}</h3><Meter label="Spending to date vs budget to date" actual={budget.F.ytdA} plan={budget.F.ytdB || null} fmt={(v) => `${budget.b.currency} ${fmtK(v)}`} /><p className="small muted">{budget.F.annual ? Math.round((budget.F.ytdA / budget.F.annual) * 100) : 0}% of the annual budget of {budget.b.currency} {fmtK(budget.F.annual)} used. <Link href="/budget">Open the budget</Link></p></div>}
+          {plan && (() => { const y = plan.years[plan.years.length - 1]; return <div className="card"><h3>Business plan vs actual</h3><p className="muted small">{plan.v.title} v{plan.v.version_no} ({plan.v.status}). Plan figures are projections, not commitments.</p>{y ? <><p className="small">Year {y.year} ({fmtDate(y.start)} to {fmtDate(y.end)})</p>{y.metrics.filter((m: { key: string }) => ["investment_cum", "employees", "office", "revenue"].includes(m.key)).map((m: { key: string; label: string; plan: number | null; actual: number | null }) => <Meter key={m.key} label={m.label} actual={m.actual} plan={m.plan} fmt={fmtNum} />)}</> : <p className="muted">Year 1 has not started yet.</p>}</div>; })()}
         </div>
       </div>
     </>

@@ -49,6 +49,20 @@ async function main() {
   try { await readStored("../../etc/passwd"); } catch (e) { badKey = (e as Error).message === "Invalid storage key"; }
   check("storage refuses a path outside its folder", badKey);
 
+  check("no tenant set: raw read of plans and budgets returns nothing", (await db.businessPlan.count()) === 0 && (await db.budget.count()) === 0);
+  const plan = await withTenant(demo.id, (tx) => tx.businessPlan.findFirstOrThrow({ where: { status: "Locked" } }));
+  const budget = await withTenant(demo.id, (tx) => tx.budget.findFirstOrThrow());
+  check("another tenant can't fetch a plan or budget by id", (await withTenant(harbour.id, (tx) => tx.businessPlan.findUnique({ where: { id: plan.id } }))) === null && (await withTenant(harbour.id, (tx) => tx.budget.findUnique({ where: { id: budget.id } }))) === null);
+  check("another tenant can't change a plan or budget", (await withTenant(harbour.id, (tx) => tx.businessPlan.updateMany({ where: { id: plan.id }, data: { isReference: false } }))).count === 0 && (await withTenant(harbour.id, (tx) => tx.budget.updateMany({ where: { id: budget.id }, data: { title: "x" } }))).count === 0);
+  const refused = async (fn: () => Promise<unknown>) => { try { await fn(); return false; } catch { return true; } };
+  check("a locked plan's figures can't be changed, even directly in the database", await refused(() => withTenant(demo.id, (tx) => tx.businessPlan.update({ where: { id: plan.id }, data: { years: [{ fdi_usd: 1 }] } }))));
+  check("a locked plan can't be unlocked", await refused(() => withTenant(demo.id, (tx) => tx.businessPlan.update({ where: { id: plan.id }, data: { status: "Draft" } }))));
+  check("a locked plan's milestone targets can't be changed", await refused(() => withTenant(demo.id, (tx) => tx.businessPlan.update({ where: { id: plan.id }, data: { milestones: [{ milestone: "Changed", target_date: "2099-01-01" }] } }))));
+  check("a plan can't be deleted by the app", await refused(() => withTenant(demo.id, (tx) => tx.businessPlan.deleteMany({ where: { id: plan.id } }))));
+  const ms = (plan.milestones as Record<string, unknown>[]).map((m) => ({ ...m, actual_note: "isolation test" }));
+  check("milestone progress on a locked plan can still be saved", !(await refused(() => withTenant(demo.id, (tx) => tx.businessPlan.update({ where: { id: plan.id }, data: { milestones: ms as object[] } })))));
+  await withTenant(demo.id, (tx) => tx.businessPlan.update({ where: { id: plan.id }, data: { milestones: plan.milestones as object[] } }));
+
   const roles = await db.role.findMany({ where: { organizationId: demo.id } });
   const role = (k: string) => roles.find((r) => r.key === k)!;
   const perms = (k: string) => role(k).permissions as Record<string, string>;

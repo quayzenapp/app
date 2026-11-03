@@ -2,32 +2,36 @@ import ExcelJS from "exceljs";
 import { AlignmentType, Document, HeadingLevel, Packer, Paragraph, Table, TableCell, TableRow, TextRun, WidthType } from "docx";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
-export type Section = { heading: string; columns?: string[]; rows?: (string | number | null)[][]; text?: string };
+export type Section = { heading?: string; columns?: string[]; rows?: (string | number | null)[][]; text?: string };
 export type Report = { title: string; subtitle?: string; demo?: boolean; notes?: string[]; sections: Section[] };
 export const MIME = { xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", pdf: "application/pdf" } as const;
 const DEMO = "DEMO DATA - made-up sample figures, not for submission";
-const str = (v: unknown) => (v == null ? "" : String(v));
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+/** Dates inside report text are shown as "1 Apr 2025". */
+export const fixDates = (t: string) => t.replace(/\b(\d{4})-(\d{2})-(\d{2})\b/g, (_, y, m, d) => `${Number(d)} ${MONTHS[Number(m) - 1] ?? m} ${y}`);
+export const str = (v: unknown) => (v == null ? "" : typeof v === "number" ? v.toLocaleString("en-US", { maximumFractionDigits: 2 }) : fixDates(String(v)));
 
 export async function toXlsx(r: Report): Promise<Buffer> {
   const wb = new ExcelJS.Workbook();
   const sum = wb.addWorksheet("Summary");
   sum.addRow([r.title]).font = { bold: true, size: 14 };
-  if (r.subtitle) sum.addRow([r.subtitle]);
+  if (r.subtitle) sum.addRow([fixDates(r.subtitle)]);
   if (r.demo) sum.addRow([DEMO]).font = { bold: true, color: { argb: "FF9A3412" } };
   sum.addRow([]);
   for (const n of r.notes ?? []) sum.addRow([n]);
   sum.getColumn(1).width = 120;
   const used = new Set(["summary"]);
   for (const s of r.sections) {
-    if (!s.columns) { sum.addRow([]); sum.addRow([s.heading]).font = { bold: true }; if (s.text) sum.addRow([s.text]); continue; }
-    let name = s.heading.replace(/[\\/?*[\]:]/g, " ").trim().slice(0, 28) || "Table";
+    if (s.text || !s.columns) { sum.addRow([]); if (s.heading) sum.addRow([fixDates(s.heading)]).font = { bold: true }; if (s.text) sum.addRow([fixDates(s.text)]); }
+    if (!s.columns) continue;
+    let name = (s.heading ?? "").replace(/[\\/?*[\]:]/g, " ").trim().slice(0, 28) || "Table";
     for (let i = 2; used.has(name.toLowerCase()); i++) name = `${name.slice(0, 25)} ${i}`;
     used.add(name.toLowerCase());
     const ws = wb.addWorksheet(name, { views: [{ state: "frozen", ySplit: 1 }] });
     const head = ws.addRow(s.columns);
     head.font = { bold: true, color: { argb: "FFFFFFFF" } };
     head.eachCell((c) => { c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF4F46E5" } }; });
-    (s.rows ?? []).forEach((row) => ws.addRow(row.map((v) => v ?? "")));
+    (s.rows ?? []).forEach((row) => ws.addRow(row.map((v) => (typeof v === "string" ? fixDates(v) : v ?? ""))));
     s.columns.forEach((c, i) => { const w = Math.max(c.length, ...(s.rows ?? []).map((x) => str(x[i]).length)); ws.getColumn(i + 1).width = Math.min(60, Math.max(10, w + 2)); ws.getColumn(i + 1).alignment = { wrapText: true, vertical: "top" }; });
   }
   return Buffer.from(await wb.xlsx.writeBuffer());
@@ -35,13 +39,13 @@ export async function toXlsx(r: Report): Promise<Buffer> {
 
 export async function toDocx(r: Report): Promise<Buffer> {
   const kids: (Paragraph | Table)[] = [new Paragraph({ text: r.title, heading: HeadingLevel.TITLE })];
-  if (r.subtitle) kids.push(new Paragraph(r.subtitle));
+  if (r.subtitle) kids.push(new Paragraph(fixDates(r.subtitle)));
   if (r.demo) kids.push(new Paragraph({ children: [new TextRun({ text: DEMO, bold: true, color: "9A3412" })] }));
   for (const n of r.notes ?? []) kids.push(new Paragraph({ text: n, bullet: { level: 0 } }));
   const cell = (t: string, bold = false) => new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: t, bold, size: 16 })], alignment: AlignmentType.LEFT })] });
   for (const s of r.sections) {
-    kids.push(new Paragraph({ text: s.heading, heading: HeadingLevel.HEADING_2 }));
-    if (s.text) kids.push(new Paragraph(s.text));
+    if (s.heading) kids.push(new Paragraph({ text: fixDates(s.heading), heading: HeadingLevel.HEADING_2 }));
+    if (s.text) kids.push(new Paragraph(fixDates(s.text)));
     if (s.columns) kids.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [new TableRow({ tableHeader: true, children: s.columns.map((c) => cell(c, true)) }), ...(s.rows ?? []).map((x) => new TableRow({ children: x.map((v) => cell(str(v))) }))] }));
   }
   return Packer.toBuffer(new Document({ sections: [{ children: kids }] }));
@@ -71,12 +75,12 @@ export async function toPdf(r: Report): Promise<Buffer> {
     return out.length ? out : [""];
   };
   const para = (t: string, size = 9, f = font, color = rgb(0.07, 0.09, 0.15)) => { for (const l of wrap(t, f, size, W - 2 * M)) { ensure(size + 4); page.drawText(l, { x: M, y: y - size, size, font: f, color }); y -= size + 4; } };
-  para(r.title, 15, bold); if (r.subtitle) para(r.subtitle, 9);
+  para(r.title, 15, bold); if (r.subtitle) para(fixDates(r.subtitle), 9);
   if (r.demo) para(DEMO, 10, bold, rgb(0.6, 0.2, 0.07));
   y -= 4; for (const n of r.notes ?? []) para(n, 8, font, rgb(0.42, 0.45, 0.5));
   for (const s of r.sections) {
-    y -= 10; ensure(40); para(s.heading, 11, bold);
-    if (s.text) para(s.text);
+    y -= 10; ensure(40); if (s.heading) para(fixDates(s.heading), 11, bold);
+    if (s.text) para(fixDates(s.text));
     if (!s.columns) continue;
     const size = 7.5, total = W - 2 * M;
     const weights = s.columns.map((c, i) => Math.max(8, Math.min(60, Math.max(c.length, ...(s.rows ?? []).map((x) => str(x[i]).length)))));

@@ -48,6 +48,12 @@ A reviewed verbatim port of `ar.js`; keep it comparable with the source and test
 ## Documents
 UBO, passport and visa categories are always restricted, visible only to roles with `id` or `ubo` access. Versions are never changed or removed. Unlike the artifact, Word and Excel files are allowed, because its limit came from the artifact's file store.
 
+## Reports (`src/lib/reports/engine.ts`)
+A reviewed verbatim port of `reports.js`; the artifact has nine, despite a comment saying ten. `loadReportStore` strips restricted fields before the engine sees any data. Test with `pnpm test:reports`, whose figures are worked out by hand.
+
+## Business plan and budget
+Plan figures are projections, recorded as submitted. A second person locks a version; figures then can't change (database trigger), only milestone progress and explanations. A revision is a new version. Plans have 10 years, as the Technical Evaluation Form does. The budget is a management tool, not a Commission requirement. `src/lib/budget-engine.ts` is a verbatim port of the calculations in `budget.js`.
+
 ## Dashboard figures (`pages1.js`)
 - Open requests: status not Submitted or Closed.
 - Obligations not met: status not Met or Not applicable.

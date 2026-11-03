@@ -50,6 +50,8 @@ check("register lists own data, not another tenant's", t.includes("Helen Example
 await go(admin.page, "/r/obligations/new");
 await admin.page.click('button:has-text("Save")'); await admin.page.waitForSelector(".banner.bad");
 check("validation errors appear", (await text(admin.page)).includes("is required"));
+await admin.page.fill("#f_title", "kept"); await admin.page.click('button:has-text("Save")'); await admin.page.waitForFunction(() => document.querySelectorAll(".banner.bad li").length > 0, null, { timeout: 30000 }); await admin.page.waitForTimeout(1500);
+check("a record form keeps what was typed after an error", (await admin.page.inputValue("#f_title")) === "kept");
 await admin.page.fill("#f_title", "E2E obligation"); await admin.page.selectOption("#f_obligation_type", "Licence condition");
 await admin.page.selectOption("#f_basis", "Internal good practice"); await admin.page.fill("#f_source_document", "E2E clause 1");
 await admin.page.click('button:has-text("Save")'); await admin.page.waitForURL(/\/r\/obligations$/);
@@ -189,6 +191,140 @@ await admin.page.locator('tr:has-text("E2E large AI doc") button:has-text("Delet
 await admin.page.waitForFunction(() => !document.body.innerText.includes("E2E large AI doc"), null, { timeout: 30000 });
 check("delete asks first, then removes it", true);
 
+/* ---------- business plan and budget ---------- */
+await go(admin.page, "/dashboard"); t = await text(admin.page);
+check("the dashboard shows budget and plan cards", t.includes("Budget 2026/27 (demo)") && t.includes("Business plan vs actual") && t.includes("Employees (total)"));
+await admin.page.screenshot({ path: `${S}/dash-plan.png`, fullPage: true });
+await go(admin.page, "/bplan"); t = await text(admin.page);
+check("the seeded plan is the reference, with plan vs actual", t.includes("Reference") && t.includes("Current plan year") && t.includes("Plan vs actual"));
+await admin.page.screenshot({ path: `${S}/bplan.png`, fullPage: true });
+await admin.page.click('button:has-text("Record another plan version")'); await admin.page.waitForURL(/\/bplan\/[^/]+\/edit$/, { timeout: 60000 });
+const planEdit = admin.page.url().replace(BASE, ""), planUrl = planEdit.replace("/edit", "");
+await admin.page.fill("#p_t", "E2E plan"); await admin.page.fill('input[name="y0_fdi_usd"]', "abc");
+await admin.page.click('button:has-text("Save draft")'); await admin.page.waitForSelector(".banner.bad", { timeout: 30000 });
+check("a non-number in the plan is refused and named", (await text(admin.page)).includes("year 1: please enter a number"));
+check("a failed save keeps everything that was typed", (await admin.page.inputValue("#p_t")) === "E2E plan" && (await admin.page.inputValue('input[name="y0_fdi_usd"]')) === "abc");
+await admin.page.fill('input[name="y0_fdi_usd"]', "123456"); await admin.page.fill("#p_m", "E2E milestone ; 2027-01-01");
+await admin.page.click('button:has-text("Save draft")'); await admin.page.waitForURL("**" + planUrl, { timeout: 60000 });
+check("the draft saves", (await text(admin.page)).includes("123,456"));
+await admin.page.click('button:has-text("Ask for a check")'); await admin.page.waitForSelector(".banner.bad", { timeout: 30000 });
+check("a plan needs its Year 1 date before a check", (await text(admin.page)).includes("Set the Year 1 start date"));
+res = await admin.ctx.request.get(BASE + "/bplan/template");
+const tw = new ExcelJS.Workbook(); await tw.xlsx.load(await res.body());
+{ const ws = tw.getWorksheet("Business plan figures"); ws.eachRow((r) => { const l = String(r.getCell(1).value ?? ""); if (l === "FDI (USD) - funds raised outside Sri Lanka") { r.getCell(2).value = 777000; r.getCell(3).value = "not a number"; } if (l === "Local employees") r.getCell(2).value = 12; if (l.startsWith("Year 1 starts")) r.getCell(2).value = "2025-04-01"; }); }
+await go(admin.page, planEdit); await admin.page.click("details summary");
+await admin.page.setInputFiles('details input[type="file"]', { name: "plan.xlsx", mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", buffer: Buffer.from(await tw.xlsx.writeBuffer()) });
+await admin.page.click('button:has-text("Import figures")'); await admin.page.waitForSelector("details .banner", { timeout: 60000 });
+t = await admin.page.locator("details .banner").first().innerText();
+check("the template imports and reports what it skipped", t.includes("figures imported") && t.includes("not a number"), t);
+check("a wrong file is refused rather than guessed", true);
+await go(admin.page, planEdit); check("imported figures are in the form", (await admin.page.inputValue('input[name="y0_fdi_usd"]')) === "777000" && (await admin.page.inputValue("#p_y")) === "2025-04-01");
+await go(admin.page, planUrl);
+await admin.page.click('button:has-text("Ask for a check")'); await admin.page.waitForSelector('button:has-text("Checked against the plan")', { timeout: 30000 });
+await admin.page.click('button:has-text("Checked against the plan")'); await admin.page.waitForSelector(".banner.bad", { timeout: 30000 });
+check("the person who entered a plan can't lock it", (await text(admin.page)).includes("different person must check and lock"));
+await go(reviewer.page, planUrl); await reviewer.page.click('button:has-text("Checked against the plan")');
+await reviewer.page.waitForFunction(() => document.body.innerText.includes("Fingerprint "), null, { timeout: 30000 }).catch(() => {});
+await go(admin.page, planUrl); t = await text(admin.page);
+check("a second person locks it, with a fingerprint", t.includes("Locked") && t.includes("Fingerprint "), t.slice(0, 500));
+check("a locked plan has no Edit", (await admin.page.locator('a:has-text("Edit")').count()) === 0);
+await go(admin.page, planEdit); check("nor can its edit page be opened", admin.page.url().endsWith(planUrl));
+await admin.page.click('button:has-text("Check fingerprint")'); await admin.page.waitForSelector(".card form .banner", { timeout: 30000 });
+check("the fingerprint checks out", (await admin.page.locator(".card form .banner").first().innerText()).includes("Fingerprint matches"));
+await go(admin.page, "/bplan"); const seeded = await admin.page.locator('tr:has-text("v1") a').first().getAttribute("href");
+await go(admin.page, seeded); await admin.page.click('button:has-text("Check fingerprint")'); await admin.page.waitForSelector(".card form .banner", { timeout: 30000 });
+check("the seeded plan's fingerprint checks out too", (await admin.page.locator(".card form .banner").first().innerText()).includes("Fingerprint matches"));
+await admin.page.selectOption('select[aria-label="Status of Reach 19 employees"]', "Delayed"); await admin.page.click('button:has-text("Save progress")'); await admin.page.waitForFunction(() => [...document.querySelectorAll(".banner")].some((b) => b.innerText.includes("Progress saved")), null, { timeout: 30000 });
+check("milestone progress saves on a locked plan", true);
+await go(admin.page, planUrl); await admin.page.click('button:has-text("Use this version for comparison")'); await admin.page.waitForFunction(() => document.body.innerText.includes("Used for comparison"), null, { timeout: 30000 });
+await go(admin.page, "/bplan"); check("the chosen version becomes the only reference", (await admin.page.locator('tr:has(.badge:text-is("Reference"))').count()) === 1 && (await admin.page.locator('tr:has(.badge:text-is("Reference"))').first().innerText()).includes("E2E plan"), (await admin.page.locator("table").first().innerText()).replace(/\s+/g, " ").slice(0, 500));
+await go(admin.page, "/bplan/compare"); t = await text(admin.page); check("versions can be compared", t.includes("FDI (USD) - funds raised outside Sri Lanka - year 1") && t.includes("777000"));
+await go(admin.page, "/reports/plan_vs_actual"); t = await text(admin.page); check("the plan vs actual report now has figures", t.includes("Year 1") && t.includes("Investment (FDI, USD)") && !t.includes("No checked and locked"));
+for (const [f, sig] of [["xlsx", "PK"], ["pdf", "%PDF"], ["docx", "PK"]]) { const x = await admin.ctx.request.get(`${BASE}${planUrl}/export?format=${f}`); check(`a plan exports as ${f}`, x.status() === 200 && (await x.body()).subarray(0, sig.length).toString() === sig); }
+res = await other.ctx.request.get(BASE + planUrl); check("another organization can't open the plan", res.status() === 404, String(res.status()));
+res = await other.ctx.request.get(`${BASE}${planUrl}/export?format=xlsx`); check("... nor export it", res.status() === 404, String(res.status()));
+await go(admin.page, planUrl); await admin.page.click('button:has-text("Record a revised plan")'); await admin.page.waitForURL(/\/edit$/, { timeout: 60000 });
+check("a revision starts as a new draft with the same figures", (await admin.page.inputValue('input[name="y0_fdi_usd"]')) === "777000" && !admin.page.url().includes(planUrl));
+
+await go(admin.page, "/budget"); t = await text(admin.page);
+check("the demo budget shows budget, actuals and charts", t.includes("Annual spending budget") && t.includes("Budget to date") && t.includes("Month by month") && (await admin.page.locator(".cc.pc, .hb, svg.lc").count()) >= 3);
+await admin.page.screenshot({ path: `${S}/budget.png`, fullPage: true });
+await admin.page.click('a.btn:text-is("LKR")'); await admin.page.waitForURL(/cur=LKR/, { timeout: 30000 }); await admin.page.waitForFunction(() => document.querySelector(".stats.hlc .stat b")?.innerText.startsWith("LKR"), null, { timeout: 30000 }).catch(() => {});
+check("figures can be viewed in another currency", (await admin.page.locator(".stats.hlc .stat b").first().innerText()).startsWith("LKR"));
+await admin.page.click("details summary"); await admin.page.fill("#b_t", "E2E budget"); await admin.page.fill("#b_f", "2030-04-01"); await admin.page.fill("#b_c", "12"); await admin.page.click('button:has-text("Create")'); await admin.page.waitForSelector("details .banner.bad", { timeout: 30000 });
+check("a bad currency is refused", (await text(admin.page)).includes("three-letter"));
+check("the other fields survive the error", (await admin.page.inputValue("#b_t")) === "E2E budget" && (await admin.page.inputValue("#b_f")) === "2030-04-01");
+await admin.page.fill("#b_c", "usd"); await admin.page.click('button:has-text("Create")'); await admin.page.waitForURL(/\/budget\/[^/]+\/edit$/, { timeout: 60000 });
+const budEdit = admin.page.url().replace(BASE, "");
+await admin.page.waitForLoadState("networkidle"); await admin.page.waitForTimeout(1500);
+await admin.page.fill('input[aria-label="Office rent annual"]', "1000"); await admin.page.click('button[aria-label="Spread Office rent"]');
+await admin.page.waitForFunction(() => document.querySelector('input[aria-label="Office rent Apr 30"]')?.value === "83.33", null, { timeout: 15000 });
+const vals = await admin.page.locator('input[aria-label^="Office rent "]:not([aria-label$="annual"])').evaluateAll((e) => e.map((x) => Number(x.value)));
+check("Spread divides evenly and the year adds up exactly", vals.length === 12 && vals[11] === 83.37 && Math.round(vals.reduce((a, b) => a + b, 0) * 100) === 100000, vals.join());
+check("the spending total updates", (await admin.page.locator("#bud-tot").innerText()).includes("1,000"));
+await admin.page.click('button:has-text("Save budget")'); await admin.page.waitForURL(/\/budget\?b=/, { timeout: 60000 });
+const budUrl = admin.page.url().replace(BASE, ""), budId = budEdit.split("/")[2];
+t = await text(admin.page); check("the budget saves", t.includes("USD 1,000") && t.includes("E2E budget"), t.slice(0, 500));
+await admin.page.click('button:has-text("Ask for approval")'); await admin.page.waitForSelector('button:has-text("Approve budget")', { timeout: 30000 });
+await admin.page.click('button:has-text("Approve budget")'); await admin.page.waitForSelector(".banner.bad", { timeout: 30000 });
+check("the person who prepared a budget can't approve it", (await text(admin.page)).includes("different person must approve this budget"));
+await go(admin.page, "/admin/settings"); admin.page.once("dialog", (d) => d.accept()); await admin.page.click('button:has-text("Turn off")'); await admin.page.waitForSelector('button:has-text("Turn on")', { timeout: 30000 });
+await go(admin.page, budUrl); await admin.page.click('button:has-text("Approve budget")'); await admin.page.waitForFunction(() => document.querySelector(".ctlcard .badge.ok")?.innerText === "Approved", null, { timeout: 30000 });
+check("with the control off, a one-person team can approve its own work", true);
+await go(admin.page, "/admin/audit"); t = await text(admin.page);
+check("the control change and the self-approval are both audited", t.includes("Second-person check turned off") && t.includes("(second-person check off)"));
+{ const fin2 = await go(finance.page, "/admin/settings"); check("only administrators can change the control", finance.page.url().includes("forbidden") && fin2.status() === 200); }
+await go(admin.page, "/admin/settings"); await admin.page.click('button:has-text("Turn on")'); await admin.page.waitForSelector('button:has-text("Turn off")', { timeout: 30000 });
+check("the control can be turned back on", (await text(admin.page)).includes("On"));
+await go(admin.page, budUrl); await admin.page.click('button:has-text("Copy to the next year")'); await admin.page.waitForFunction(() => document.body.innerText.includes("Budget 2031/32"), null, { timeout: 30000 });
+check("a budget copies to the next year", true);
+await go(admin.page, budUrl); await admin.page.click('button:has-text("Copy to the next year")'); await admin.page.waitForSelector(".banner.bad", { timeout: 30000 });
+check("but only once", (await text(admin.page)).includes("already a budget starting"));
+for (const [f, sig] of [["xlsx", "PK"], ["pdf", "%PDF"], ["docx", "PK"]]) { const x = await admin.ctx.request.get(`${BASE}/budget/${budId}/export?format=${f}`); check(`a budget exports as ${f}`, x.status() === 200 && (await x.body()).subarray(0, sig.length).toString() === sig); }
+res = await other.ctx.request.get(`${BASE}/budget/${budId}/export?format=xlsx`); check("another organization can't export the budget", res.status() === 404, String(res.status()));
+await go(other.page, budUrl); check("... nor see it", !(await text(other.page)).includes("E2E budget"));
+check("no client errors in plan and budget", admin.errs.length === 0, admin.errs.join(" | ").slice(0, 300));
+
+/* ---------- reports and SEZ wording ---------- */
+const xlsxText = async (buf) => { const wb = new ExcelJS.Workbook(); await wb.xlsx.load(buf); let all = ""; wb.eachSheet((w) => w.eachRow((r) => { all += JSON.stringify(r.values); })); return all; };
+const CODES = ["plan_vs_actual", "employees", "office_headcount", "investment", "annual_return", "requests", "obligations", "visas", "missing_docs"];
+await go(admin.page, "/reports");
+check("all nine reports are listed for an administrator", (await admin.page.locator("a.tile").count()) === 9);
+await admin.page.screenshot({ path: `${S}/reports.png` });
+for (const code of CODES) {
+  const r = await go(admin.page, `/reports/${code}`);
+  t = await text(admin.page);
+  check(`${code}: opens with DEMO marked`, r.status() === 200 && t.includes("DEMO DATA"), String(r.status()));
+  for (const [f, sig] of [["xlsx", "PK"], ["pdf", "%PDF"], ["docx", "PK"]]) { const x = await admin.ctx.request.get(`${BASE}/reports/${code}/export?format=${f}`); const b = await x.body(); check(`${code}: exports as ${f}`, x.status() === 200 && b.subarray(0, sig.length).toString() === sig && (x.headers()["content-disposition"] ?? "").includes("DEMO_"), `${x.status()} ${x.status() === 200 ? "" : b.toString().slice(0, 200)}`); }
+}
+await go(admin.page, "/reports/office_headcount"); await admin.page.screenshot({ path: `${S}/report.png` });
+t = await xlsxText(await (await admin.ctx.request.get(`${BASE}/reports/office_headcount/export?format=xlsx`)).body());
+check("office report figures from the demo", t.includes("SEZ office (demo)") && t.includes("320"));
+check("reports say SEZ, not Port City", !t.includes("Port City") && t.includes("Inside SEZ"), t.slice(0, 200));
+t = await xlsxText(await (await admin.ctx.request.get(`${BASE}/reports/employees/export?format=xlsx`)).body());
+check("employee report leaves names out by default", !t.includes("Nimal Perera"));
+t = await xlsxText(await (await admin.ctx.request.get(`${BASE}/reports/employees/export?format=xlsx&names=1`)).body());
+check("names are included when asked, for a role that may see them", t.includes("Nimal Perera"));
+t = await xlsxText(await (await finance.ctx.request.get(`${BASE}/reports/employees/export?format=xlsx&names=1`)).body());
+check("asking for names is ignored for a role that may not see them", !t.includes("Nimal Perera"));
+{ await go(finance.page, "/reports/employees"); check("that role isn't offered the option", (await finance.page.locator('input[name="names"]').count()) === 0); }
+await go(admin.page, "/reports/visas?days=30"); check("a report's options work", (await text(admin.page)).includes("Expiring within 30 days"));
+await go(admin.page, "/reports/not-a-report"); check("an unknown report isn't found", (await text(admin.page)).includes("404") || (await admin.page.title()).includes("404"));
+t = await xlsxText(await (await other.ctx.request.get(`${BASE}/reports/office_headcount/export?format=xlsx`)).body());
+check("another organization's report holds none of this organization's data", !t.includes("SEZ office (demo)") && t.includes("Harbourline"));
+await go(admin.page, "/admin/audit"); check("report exports are in the audit log", (await text(admin.page)).includes("Exported employees as xlsx, with names"));
+
+await go(admin.page, "/r/offices/new");
+const optTexts = await admin.page.locator("#f_location option").allInnerTexts();
+check("forms show SEZ wording", optTexts.includes("Inside SEZ") && !optTexts.join().includes("Port City"), optTexts.join());
+await admin.page.fill("#f_name", "E2E office"); await admin.page.fill("#f_address", "1 Test Road"); await admin.page.selectOption("#f_location", { label: "Inside SEZ" }); await admin.page.fill("#f_floor_area", "10");
+await admin.page.click('button:has-text("Save")'); await admin.page.waitForURL(/\/r\/offices(\/|$)(?!new)/, { timeout: 30000 });
+t = await xlsxText(await (await admin.ctx.request.get(`${BASE}/r/offices/export`)).body());
+check("the saved value is unchanged by the display wording", /E2E office.*Inside Colombo Port City/.test(t), t.slice(-400));
+await go(admin.page, "/r/requests/new");
+check("the Commission's own name is not reworded", (await admin.page.inputValue("#f_authority")) === "Colombo Port City Economic Commission");
+check("no client errors after reports and wording", admin.errs.length === 0, admin.errs.join(" | ").slice(0, 300));
+
 const adviser = await session("adviser@demo.test");
 await go(adviser.page, "/r/employees"); check("adviser blocked from workforce", adviser.page.url().includes("forbidden"));
 await go(adviser.page, "/r/ubo");
@@ -197,6 +333,13 @@ const html = await adviser.page.content();
 check("restricted value never reaches the adviser's browser", !html.includes("DEMO-P123") && !html.includes("1975-04-12"));
 { const x = await adviser.ctx.request.get(BASE + "/r/ubo/export"); const wb = new ExcelJS.Workbook(); await wb.xlsx.load(await x.body()); let all = ""; wb.eachSheet((w) => w.eachRow((r) => { all += JSON.stringify(r.values); })); check("restricted values are left out of the adviser's Excel export", x.status() === 200 && all.includes("Helen Example") && !all.includes("DEMO-P123") && !all.includes("Passport number")); }
 { const x = await adviser.ctx.request.get(BASE + "/r/employees/export"); check("adviser can't export a section they can't read", x.status() === 403); }
+await go(adviser.page, "/reports"); t = await text(adviser.page);
+check("reports follow the role: an adviser has no employee report", !t.includes("Employee information") && t.includes("Licence and obligation status"));
+await go(adviser.page, "/reports/employees"); check("... nor can they open it by address", adviser.page.url().includes("forbidden"));
+{ const x = await adviser.ctx.request.get(BASE + "/reports/employees/export?format=xlsx"); check("... nor export it", x.status() === 403, String(x.status())); }
+await go(adviser.page, await (async () => { await go(adviser.page, "/r/ubo"); return adviser.page.locator("tbody a").first().getAttribute("href"); })());
+await go(adviser.page, "/bplan"); check("an adviser can read the plan but not change it", (await adviser.page.locator('button:has-text("Record")').count()) === 0 && (await adviser.page.locator('input[placeholder="Add an explanation"]').count()) === 0);
+await go(adviser.page, await (async () => { await go(adviser.page, "/r/ubo"); return adviser.page.locator("tbody a").first().getAttribute("href"); })());
 check("adviser has no Save", (await adviser.page.locator('button:has-text("Save")').count()) === 0);
 await go(adviser.page, "/admin"); check("adviser blocked from admin", adviser.page.url().includes("forbidden"));
 await go(adviser.page, "/dashboard");

@@ -1,5 +1,6 @@
 "use client";
 import { useActionState } from "react";
+import { useFormKeepingInput } from "@/components/admin-ui";
 import type { SaveState } from "@/app/(app)/actions";
 import type { Field } from "@/lib/forms";
 
@@ -18,10 +19,11 @@ function Input({ f, v, p }: { f: Field; v: unknown; p: Props }) {
 
 export function RecordForm(p: Props) {
   const [state, action, pending] = useActionState(p.action, {});
+  const { ref, onSubmit } = useFormKeepingInput(action, null); // saved records redirect; a profile save keeps its values
   const groups = new Map<string, Field[]>();
   for (const f of p.fields) { const g = f.group ?? "Details"; groups.set(g, [...(groups.get(g) ?? []), f]); }
   return (
-    <form className="f" action={action} noValidate>
+    <form ref={ref} className="f" action={action} onSubmit={onSubmit} noValidate>
       {state.errors?.length ? <div className="banner bad" role="alert"><ul>{state.errors.map((e) => <li key={e}>{e}</li>)}</ul></div> : null}
       {state.notes?.length ? <div className="banner info" role="status"><ul>{state.notes.map((e) => <li key={e}>{e}</li>)}</ul></div> : null}
       {[...groups].map(([g, fs]) => (

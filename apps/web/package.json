@@ -9,7 +9,9 @@
     "db:seed": "tsx prisma/seed.ts",
     "test:isolation": "tsx scripts/test-isolation.ts",
     "db:migrate": "prisma migrate deploy",
-    "test:returns": "tsx scripts/test-annual-return.ts"
+    "test:returns": "tsx scripts/test-annual-return.ts",
+    "test:reports": "tsx scripts/test-reports.ts",
+    "test:plan-budget": "tsx scripts/test-plan-budget.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.1",

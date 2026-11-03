@@ -205,3 +205,14 @@ export async function createForm(_s: ActionState, f: FormData): Promise<ActionSt
   const row = await db.formDefinition.create({ data: { organizationId, key, label, plural: `${label}s`, module, titleField: "title", listFields: ["title"], status: "DRAFT", fields: [{ name: "title", label: "Title", type: "text", required: true }] } });
   redirect(`/admin/forms/${row.id}`);
 }
+
+/* ---------- controls ---------- */
+export async function setSecondPerson(_s: ActionState, f: FormData): Promise<ActionState> {
+  const ctx = await requireAdmin(); // always the organization currently selected and validated
+  const on = f.get("value") === "on";
+  const org = await db.organization.findUniqueOrThrow({ where: { id: ctx.org.id } });
+  await db.organization.update({ where: { id: org.id }, data: { settings: { ...(org.settings as object), separateReviewer: on } } });
+  await log(ctx, org.id, "control", "settings", org.id, `Second-person check turned ${on ? "on" : "off"}`);
+  revalidatePath("/admin/settings");
+  return { ok: `The second-person check is now ${on ? "on" : "off"}.` };
+}

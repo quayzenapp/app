@@ -12,6 +12,11 @@ Last updated: 2026-11-03
 - Ask Quayza: ingestion, hybrid search, citations, streaming, off-topic refusal, OpenRouter, Bedrock and local providers.
 - Annual returns: calculation engine, line-by-line checking with explanations, second-person approval, fixed snapshots with a fingerprint, the Commission's original PDF filled and read back, submission record. Working report in Excel, PDF and Word.
 - Documents: register with categories, expiry dates, search, linking to records, archive. Files with kept versions, stored outside the web root. Restricted access enforced on the server for details and downloads, files checked by content, integrity checked on download, restricted downloads audited. Expiring documents appear on the dashboard.
+- Reports: all nine artifact reports on screen and in Excel, PDF and Word, following the role's modules and restricted fields. Exports are audited.
+- SEZ wording: "Port City" shows as "SEZ" on screen and in reports, as in the artifact. Saved data, the Commission's name and official forms are unchanged. To turn it off, remove `<SezWording />` and the `sezDeep` calls.
+- Business plan: versions, entry form and Excel template import, second-person check and lock with fingerprint (a database trigger refuses changes to locked figures), reference version, revisions, version comparison, milestone progress, explanations, plan vs actual with charts, exports, attached documents.
+- Budget: monthly grid with Spread, approval, copy to next year, pro rata comparison with financial records, currency view, charts, exports. Budget and plan cards on the dashboard.
+- Controls: an organization's administrator can turn off the second-person check (Admin > Controls), audited.
 - Registers: Excel export (restricted fields left out by role) and all-or-nothing Excel import. Company profile.
 - OpenRouter answers tested with the free auto-router: real cited answers in 3 to 8 seconds.
 - Demo: Demo Company and Harbourline, 8 users. Password `Demo@12345`, development only.
@@ -23,18 +28,27 @@ Last updated: 2026-11-03
 
 ## Known polish items
 - Sign-in card renders about 320px wide, so "Remember me" wraps. Width rules in the Keycloak theme CSS had no visible effect; it works but needs another look (Keycloak may be caching the stylesheet, or a parent element is constraining it).
-- Pencil-style charts use an SVG filter (`#qz-wobble`) that isn't added to the page yet. Add it from the artifact when building charts.
+
+## Next task
+The licence application: see `docs/HANDOFF-licence-application.md`. Original forms are in `apps/web/assets/forms/`, decoded by `tools/extract_forms.py`.
 
 ## Roadmap: not built yet (these sections show a "planned" page)
 Each needs its logic ported from `docs/artifact/src/`. See the `quayzen-product` skill.
-1. Dashboard charts and section overviews: `insights.js`, `overviews.js`
-2. The ten standard reports (the export engine is `src/lib/report-export.ts`): `reports.js`
-   Document templates with {{markers}} and checklist-line uploads come with the licence application, which they depend on: `x_docs.js`. By-category chart on the Documents page: with the charts in item 1.
+1. Remaining section overviews and their charts: `insights.js`, `overviews.js`. Chart helpers are in `src/lib/charts.ts`.
+2. Document templates with {{markers}} and checklist-line uploads come with the licence application, which they depend on: `x_docs.js`. By-category chart on the Documents page: with the charts in item 1.
 3. Annual returns overview page: `overviews.js`
-4. Business plan, budget, office space comparison: `x_bpb.js`, `x_bplink.js`, `budget.js`, `space.js`
+4. Office space comparison: `space.js`
+   Capital inflow targets, in the investment section: end of `budget.js`
+   Business plan parts tied to the licence application come with it: linked plan from an application, the plan document builder, Technical Evaluation Form import: `x_bplink.js`, `x_bpb.js`. Today's Excel import reads the Quayzen template only.
 5. Licence application and changes, 21 Commission forms: `lic_*.js`, `x_pkg.js`, `js/forms/*.js`
 6. Development approvals, visas workflow, checklists, How It Works: `x_dev.js`, `x_visa.js`, `x_check.js`, `x_flow.js`, `x_sysmap.js`
 7. Production: web Dockerfile, real secrets, HTTPS, Keycloak production mode, backups, S3, email for invitations and password resets, rate limiting. Files are on local disk (`STORAGE_DIR`), so they need a shared volume and backups, or S3 through `src/lib/storage.ts`. No virus scanning of uploads yet.
+
+## Reports that depend on modules not built yet
+- Commission request history has empty Approved and Sent columns until the request approval workflow exists (`pages1.js`).
+
+## Differences from the artifact to decide or port
+- The artifact has adjustable reminder windows (Setup > Controls). Here the dashboard uses fixed windows.
 
 ## Ask Quayza accuracy
 `services/ai/scripts/retrieval_check.py` holds 10 known questions and now finds 10 of 10, but this set is small and written by us; grow it with real user questions. A local cross-encoder reranker (ms-marco-MiniLM-L-12) was tried and rejected: no accuracy gain on this set, and 22 seconds per search on CPU. Quayza only answers from retrieved passages, so an answer can still be incomplete: check important points against the source.

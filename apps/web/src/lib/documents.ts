@@ -39,6 +39,10 @@ export function checkFile(name: string, bytes: Uint8Array): { error: string } | 
 /** Readable names for linked records, without revealing anything this role can't see. */
 export async function linkLabel(tx: Tx, ctx: TenantContext, forms: Form[], linkType: string | null, linkId: string | null) {
   if (!linkType || !linkId) return null;
+  if (linkType === "bplans") {
+    const v = await tx.businessPlan.findFirst({ where: { id: linkId, organizationId: ctx.org.id } });
+    return v ? { label: `Business plan v${v.versionNo}`, href: can(ctx, "bplan") ? `/bplan/${v.id}` : null } : null;
+  }
   const form = forms.find((f) => f.key === linkType);
   if (!form) return null;
   const rec = await tx.record.findFirst({ where: { id: linkId, organizationId: ctx.org.id, formKey: linkType } });

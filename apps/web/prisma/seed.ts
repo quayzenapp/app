@@ -4,6 +4,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { saveFile, sha256 } from "../src/lib/storage";
+import { planHashBody } from "../src/lib/bplan";
 
 /** Idempotent: global forms, lookups and role templates, plus two clearly marked demo organizations. */
 const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_OWNER_URL! }) });
@@ -137,6 +138,50 @@ async function main() {
       ],
       housing: [{ description: "Apartment for expatriate staff (demo)", staff_group: "Non-Sri Lankan", tenure: "Leased", from_date: "2025-01-01" }],
     })) for (const { _review, ...data } of rows) await db.record.create({ data: { organizationId: demo.id, formKey, data, reviewStatus: _review ?? null } });
+  }
+
+  // Link demo staff to their office and positions, so the reports read like a real company. Never overwrites a link.
+  const [demoOffice, demoPositions, demoStaff] = await Promise.all([
+    db.record.findFirst({ where: { organizationId: demo.id, formKey: "offices" }, orderBy: { createdAt: "asc" } }),
+    db.record.findMany({ where: { organizationId: demo.id, formKey: "positions" } }),
+    db.record.findMany({ where: { organizationId: demo.id, formKey: "employees" } }),
+  ]);
+  for (const e of demoStaff) {
+    const data = e.data as Record<string, unknown>;
+    const pos = demoPositions.find((p) => (p.data as Record<string, unknown>).title === data.job_title);
+    if (!data.office_id || !data.position_id) await db.record.update({ where: { id: e.id }, data: { data: { ...data, office_id: data.office_id ?? demoOffice?.id ?? null, position_id: data.position_id ?? pos?.id ?? null } as object } });
+  }
+  if (!(await db.record.count({ where: { organizationId: demo.id, formKey: "policies" } }))) {
+    for (const data of [
+      { policy_type: "Health insurance", title: "Group medical cover (demo)", description: "Inpatient and outpatient cover for staff and dependants.", eligibility: "All permanent staff", coverage_limit: "USD 20,000 per year", applies_to: "All staff", effective_from: "2025-01-01" },
+      { policy_type: "Accommodation", title: "Expatriate housing (demo)", description: "Company-leased apartment.", eligibility: "Staff relocating from overseas", applies_to: "Non-Sri Lankan staff only", effective_from: "2025-01-01" },
+      { policy_type: "Travel and relocation", title: "Relocation allowance (demo)", description: "One-off relocation support and annual home leave flight.", eligibility: "Staff relocating from overseas", coverage_limit: "USD 5,000", applies_to: "Non-Sri Lankan staff only", effective_from: "2025-01-01" },
+    ]) await db.record.create({ data: { organizationId: demo.id, formKey: "policies", data } });
+  }
+
+  // A locked plan and an approved budget, with this year's spending, so plan vs actual and the budget read like a real company.
+  if (!(await db.businessPlan.count({ where: { organizationId: demo.id } }))) {
+    const y = (local: number, foreign: number, office: number, rev: number, fdi: number, source = "Equity") => ({ revenue_usd: rev, expenses_usd: Math.round(rev * 0.78), net_income_usd: Math.round(rev * 0.22), local_employees: local, foreign_employees: foreign, local_remuneration_usd: local * 18000, foreign_remuneration_usd: foreign * 60000, office_sqm: office, fdi_usd: fdi, lkr_land_lease: null, funding_source: source, funding_details: "Parent company funding (demo)", funding_evidence: "Yes" });
+    const years = [y(8, 2, 300, 800000, 500000), y(15, 4, 400, 1200000, 348500), y(22, 5, 500, 1800000, 300000), y(28, 6, 600, 2400000, 250000), y(34, 7, 700, 3100000, 200000), y(38, 8, 750, 3700000, 150000), y(42, 8, 800, 4200000, 100000), y(45, 9, 850, 4700000, 100000), y(48, 9, 900, 5100000, 50000), y(50, 10, 950, 5500000, 50000)];
+    const milestones = [{ milestone: "Open the SEZ office", target_date: "2025-09-30", actual_status: "Achieved", actual_date: "2025-09-15" }, { milestone: "Reach 19 employees", target_date: "2027-03-31", actual_status: "In progress" }, { milestone: "Second product line", target_date: "2027-09-30", actual_status: "Not started" }];
+    const sections = { background: "Demo software services company.", activities: "Software services for customers outside Sri Lanka (demo)." };
+    const title = "Business plan (demo)", year1Start = "2025-04-01";
+    await db.businessPlan.create({ data: { organizationId: demo.id, versionNo: 1, title, status: "Locked", commissionStatus: "Submitted with the licence application", commissionDate: "2025-01-15", commissionRef: "DEMO-APP-0147", year1Start, years, milestones, sections, isReference: true, lockedByName: "Ravi Reviewer", lockedAt: new Date("2025-02-01"), hash: sha256(new TextEncoder().encode(planHashBody({ title, year1Start, sections, years, milestones }))) } });
+  }
+  if (!(await db.budget.count({ where: { organizationId: demo.id } }))) {
+    const office = (await db.record.findFirst({ where: { organizationId: demo.id, formKey: "offices" }, orderBy: { createdAt: "asc" } }))!;
+    const flat = (n: number) => Array(12).fill(n);
+    await db.budget.create({ data: { organizationId: demo.id, title: "Budget 2026/27 (demo)", fyStart: "2026-04-01", currency: "USD", status: "Approved", approvedByName: "Ravi Reviewer", approvedAt: new Date("2026-03-20"), lines: { Revenue: { months: flat(100000) }, "Basic remuneration": { months: flat(30000) }, "Office rent": { months: flat(8000) }, "Other operational expenditure": { months: flat(6000) }, "Capital expenditure": { months: [20000, ...Array(10).fill(0), 10000] }, "EPF payment": { months: flat(1000) } } } });
+    if (!(await db.record.count({ where: { organizationId: demo.id, formKey: "fx_rates" } }))) await db.record.create({ data: { organizationId: demo.id, formKey: "fx_rates", data: { rate_date: "2026-04-01", currency: "LKR", per_usd: 300, lkr_per_unit: 1, source: "Demo rate" } } });
+    for (let i = 0; i < 7; i++) {
+      const dt = `2026-${String(4 + i).padStart(2, "0")}-28`;
+      const e = (category: string, description: string, usd: number, extra = {}) => db.record.create({ data: { organizationId: demo.id, formKey: "fin_entries", reviewStatus: "Confirmed", data: { entry_date: dt, category, description, original_amount: usd, original_currency: "USD", usd_rate: 1, usd_amount: usd, conversion_method: "USD: same currency", staff_group: "Not applicable", pre_operating: "No", ...extra } } });
+      await e("Revenue", "Software services (demo)", 92000 + i * 2000, { country_region: "Singapore" });
+      await e("Basic remuneration", "Salaries (demo)", 29000 + i * 300, { staff_group: "Sri Lankan" });
+      await e("Office rent", "Office rent (demo)", 8000, { office_id: office.id });
+      await e("Other operational expenditure", "Utilities and supplies (demo)", 6500);
+    }
+    await db.record.create({ data: { organizationId: demo.id, formKey: "fin_entries", reviewStatus: "Confirmed", data: { entry_date: "2026-04-20", category: "Capital expenditure", description: "Laptops (demo)", original_amount: 18000, original_currency: "USD", usd_rate: 1, usd_amount: 18000, conversion_method: "USD: same currency", staff_group: "Not applicable", pre_operating: "No" } } });
   }
 
   if (!(await db.document.count({ where: { organizationId: demo.id } }))) {

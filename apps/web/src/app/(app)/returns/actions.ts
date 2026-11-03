@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { arCompute } from "@/lib/ar/engine";
+import { assertDifferentPerson, secondPersonRequired } from "@/lib/controls";
 import { TEMPLATE_LINES, lineValue, loadCompany, loadStore, missingLines, toEngine, type Line, type Lines } from "@/lib/ar/store";
 import { audit, withTenant, type Tx } from "@/lib/db";
 import { can, getTenantContext, type TenantContext } from "@/lib/tenant";
@@ -146,17 +147,19 @@ export async function reopenReturn(id: string, _s: State): Promise<State> {
 
 export async function approveReturn(id: string, _s: State): Promise<State> {
   const ctx = await guard("approve");
+  const separate = await secondPersonRequired(ctx.org.id);
   try {
     const hash = await withTenant(ctx.org.id, async (tx) => {
       const r = await load(tx, ctx, id);
       if (r.status !== "Ready for review") throw new Error("Only a return that is ready for review can be approved.");
-      // Second-person rule: applies to everyone, platform administrators included.
-      if (r.readyById === ctx.user.id) throw new Error("A different person must approve this annual return.");
-      const lines = r.lines as Lines;
+      // Second-person rule: applies to everyone, platform administrators included, unless the organization turned it off.
+      assertDifferentPerson(separate, r.readyById ?? r.preparedById, ctx.user.id, "approve this annual return");
+      const at = nowIso();
+      const lines = Object.fromEntries(Object.entries(r.lines as Lines).map(([k, v]) => [k, { ...v, reviewed_by: ctx.user.name, reviewed_at: at }])) as Lines;
       const h = createHash("sha256").update(JSON.stringify(Object.keys(lines).sort().map((k) => [k, lines[k].status, lines[k].num ?? null, lines[k].text ?? null])) + JSON.stringify([r.periodStart, r.periodEnd, r.currencyMethod])).digest("hex");
       const versionNo = (await tx.returnSnapshot.count({ where: { organizationId: ctx.org.id, returnId: r.id } })) + 1;
       const snap = await tx.returnSnapshot.create({ data: { organizationId: ctx.org.id, returnId: r.id, versionNo, lines: J(lines), hash: h, approvedById: ctx.user.id } });
-      await tx.annualReturn.update({ where: { id: r.id }, data: { status: "Approved", approvedById: ctx.user.id, approvedAt: new Date(), snapshotId: snap.id } });
+      await tx.annualReturn.update({ where: { id: r.id }, data: { status: "Approved", approvedById: ctx.user.id, approvedAt: new Date(), snapshotId: snap.id, lines: J(lines) } });
       await log(tx, ctx, "approve", r.id, `Approved ${r.title}: snapshot ${versionNo}, fingerprint ${h.slice(0, 16)}`);
       return h;
     });
