@@ -1,6 +1,6 @@
-# Brief: licence application module
+# Brief: finishing the product
 
-Read `AGENTS.md` first. Do **one stage at a time**, on a branch named `feature/licence-stage-N`. After each stage: run the definition of done, commit on that branch (end the message with a `Co-Authored-By` line naming your own model), update `docs/STATUS.md`, report what's done, what isn't, and any test that failed, and **stop for review**. Don't push or merge.
+Read `AGENTS.md` first. Do **one item at a time**, on the branch `feature/licence-application`. After each item: run the definition of done, commit on that branch (end the message with a `Co-Authored-By` line naming your own model), update `docs/STATUS.md`, report what's done, what isn't, and any test that failed, and **stop for review**. Don't push or merge.
 
 ## Sources
 Artifact logic, for reading only, never to execute (`docs/artifact/src/`):
@@ -28,16 +28,22 @@ Original Commission forms, already decoded, unchanged, in `apps/web/assets/forms
 - Annual returns are the closest model: `src/lib/ar/` and `src/app/(app)/returns/`. They show a verbatim port of a reviewed calculation file, a tenant table with row level security, workflow actions, second-person approval, a fixed snapshot, and PDF fill with read-back (`src/lib/ar/pdf.ts`).
 - Exports: `src/lib/report-export.ts`. Files: `src/lib/storage.ts`. Documents can link to any record: `src/lib/documents.ts`.
 - Business plan versions: `src/app/(app)/bplan/`.
-- The app has sections `apply` and `changes` under the `licensing` permission module in `src/lib/sections.ts`. They show a placeholder today.
+- The `apply` section is built (`src/app/(app)/apply/`, `src/lib/lic/`). The `changes` section uses the same `licensing` permission and is still a placeholder.
 
 ## Stages
-**Stage 1: application workflow, no form filling.** Applications with their people, status steps and readiness check, entered on screens matching the artifact's flow. Permissions under `licensing`. Dashboard card for an applicant organization (`Organization.stage`). A demo applicant in the Harbourline organization, marked DEMO. Tests: readiness rules, statuses, tenant isolation, role limits.
+Stages 1 and 2 and most of Stage 3 are **done**: see `docs/STATUS.md` and `git log`. Tests: `pnpm test:lic`, `pnpm test:forms`, `tests/e2e/run.sh lic`.
 
-**Stage 2: official forms.** Fill Schedule I (413 fields), the Technical Evaluation Form, and the four Word forms from an application, with read-back. Declarations, signatures and dates stay blank. A draft is marked DRAFT, demo data DEMO. Tests: open each output with a real parser and compare values against hand-written expectations; check the form's other content is unchanged.
+**Finish Stage 3.** Not built yet:
+- `{{marker}}` document templates, and extra checklist lines the Commission asks for (`x_docs.js`).
+- Conditions from the Approval in Principle and licence becoming obligations, and the rest of `FORMS["app-setup"]` (`lic_ui.js`).
+- A business plan draft created from the application's projections, and the plan document builder (`x_bplink.js`, `x_bpb.js`). Plans are in `src/app/(app)/bplan/`.
+- Technical Evaluation Form import (`bplParse` in `x_bplink.js`; `app-tef`, `tef-import` in `lic_ui.js`).
+- Importing people from the company register (`ap-import-people`), and suggestions from the company profile (`app-sug`, the `sug` key in the specs).
+- Editable Word and PDF copies of forms (`model` in `APP_OUTPUTS`, `lic_gen.js`), the Section 64 letter, draft board resolutions and the summary report.
 
-**Stage 3: supporting documents and pack.** The required-documents checklist with an upload on each line, extra lines the Commission asks for, `{{marker}}` templates, and the application pack ZIP. Second-person approval with a fixed copy. Recording a submission and then the licence issue, which sets up company profile, licence, obligations and office records, and links a business plan.
+**Stage 4: Licence Changes.** The `changes` section in `src/lib/sections.ts` is still a placeholder. Notice of change (Schedule III), renewal (Schedule V), Schedule IV and surrender (Schedule VI), with Offshore Forms III and V where they apply: `lic_filings.js`. `createLic` already exposes `FILING_KINDS`, `FILING_STATUS` and `S3_ITEMS`. Port the same way as `src/lib/lic/gen.ts`.
 
-**Stage 4: Licence Changes.** Notice of change, renewal, Schedule IV and surrender, with Offshore Forms III and V where they apply: `lic_filings.js`.
+**After that, the remaining placeholder sections, one at a time:** Development approvals (`x_dev.js`; forms `d1`, `p1` to `p6`, `caa`), Checklists (`x_check.js`), How It Works (`x_flow.js`, `x_sysmap.js`), the visa workflow and landing endorsement form (`x_visa.js`, `le`), Commission request approvals (`pages1.js`), office space comparison (`space.js`), capital inflow targets (end of `budget.js`), section overviews (`insights.js`, `overviews.js`). Then the production items in `docs/STATUS.md`.
 
 ## Stop and ask rather than guess
 - A form field whose meaning isn't clear from the source.

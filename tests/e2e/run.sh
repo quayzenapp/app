@@ -5,9 +5,12 @@ cd "$(dirname "$0")"; mkdir -p shots; [ -d node_modules ] || npm i --silent
 docker run --rm --network host --user "$(id -u)" -e HOME=/tmp -v "$PWD":/e2e -w /e2e mcr.microsoft.com/playwright:v1.48.2-jammy node "${1:-run}.mjs" /e2e/shots
 code=$?
 export PGPASSWORD=quayzen_dev_owner
-for k in $(psql -h localhost -p 5434 -U quayzen_owner quayzen -Atc "SELECT \"storageKey\" FROM document_versions v JOIN documents d ON d.id=v.\"documentId\" WHERE d.title LIKE 'E2E%'"); do rm -f "../../apps/web/data/files/$k"; done
+for k in $(psql -h localhost -p 5434 -U quayzen_owner quayzen -Atc "SELECT \"storageKey\" FROM document_versions v JOIN documents d ON d.id=v.\"documentId\" WHERE d.title LIKE 'E2E%' OR d.\"linkType\"='apps'"); do rm -f "../../apps/web/data/files/$k"; done
 psql -h localhost -p 5434 -U quayzen_owner quayzen -Atq <<'SQL'
 DELETE FROM documents WHERE title LIKE 'E2E%';
+DELETE FROM documents WHERE "linkType"='apps' AND "linkId" IN (SELECT id FROM applications WHERE title LIKE 'E2E%');
+DELETE FROM records WHERE data->>'data_source'='From licence application' AND "organizationId" IN (SELECT id FROM organizations WHERE slug='demo-company');
+UPDATE organizations SET profile = profile - 'main_licence_id' WHERE slug='demo-company';
 DELETE FROM application_snapshots WHERE "applicationId" IN (SELECT id FROM applications WHERE title LIKE 'E2E%');
 DELETE FROM application_people WHERE "applicationId" IN (SELECT id FROM applications WHERE title LIKE 'E2E%');
 DELETE FROM applications WHERE title LIKE 'E2E%';

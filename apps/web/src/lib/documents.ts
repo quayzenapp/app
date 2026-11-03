@@ -43,6 +43,10 @@ export async function linkLabel(tx: Tx, ctx: TenantContext, forms: Form[], linkT
     const v = await tx.businessPlan.findFirst({ where: { id: linkId, organizationId: ctx.org.id } });
     return v ? { label: `Business plan v${v.versionNo}`, href: can(ctx, "bplan") ? `/bplan/${v.id}` : null } : null;
   }
+  if (linkType === "apps") {
+    const v = await tx.application.findFirst({ where: { id: linkId, organizationId: ctx.org.id } });
+    return v ? { label: `Licence application: ${v.title}`, href: can(ctx, "licensing") ? `/apply/${v.id}` : null } : null;
+  }
   const form = forms.find((f) => f.key === linkType);
   if (!form) return null;
   const rec = await tx.record.findFirst({ where: { id: linkId, organizationId: ctx.org.id, formKey: linkType } });

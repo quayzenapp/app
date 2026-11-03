@@ -19,6 +19,7 @@ Last updated: 2026-11-03
 - Controls: an organization's administrator can turn off the second-person check (Admin > Controls), audited.
 - Licence application, Stage 1: applications with field specs from the artifact (`src/lib/lic/core.ts`), people with restricted fields, proposal, projections, profile, declarations, document checklist, readiness, second-person approval with a fixed copy, status history, dashboard card, demo applicant in Harbourline. Tests: `pnpm test:lic`, `tests/e2e/run.sh lic`.
 - Licence application, Stage 2: Schedule I, Technical Evaluation Form, AP and UBO declarations, directors form and business profile, filled inside the Commission's original files from `src/lib/lic/gen.ts`. Drafts are marked DRAFT; after approval the fixed copy is used. Tests: `pnpm test:forms`. Word and PDF editable copies aren't built.
+- Licence application, Stage 3 (part): file upload on each checklist line, stored as documents linked to the application; the application pack ZIP; setting up company profile, licence, people and office records from an issued licence.
 - Registers: Excel export (restricted fields left out by role) and all-or-nothing Excel import. Company profile.
 - OpenRouter answers tested with the free auto-router: real cited answers in 3 to 8 seconds.
 - Demo: Demo Company and Harbourline, 8 users. Password `Demo@12345`, development only.
@@ -32,7 +33,7 @@ Last updated: 2026-11-03
 - Sign-in card renders about 320px wide, so "Remember me" wraps. Width rules in the Keycloak theme CSS had no visible effect; it works but needs another look (Keycloak may be caching the stylesheet, or a parent element is constraining it).
 
 ## Next task
-The licence application: see `docs/HANDOFF-licence-application.md`. Original forms are in `apps/web/assets/forms/`, decoded by `tools/extract_forms.py`.
+See `docs/HANDOFF-licence-application.md`, which lists exactly what is left. Original forms are in `apps/web/assets/forms/`, decoded by `tools/extract_forms.py`.
 
 ## Roadmap: not built yet (these sections show a "planned" page)
 Each needs its logic ported from `docs/artifact/src/`. See the `quayzen-product` skill.

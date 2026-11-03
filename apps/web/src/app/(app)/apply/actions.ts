@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { assertDifferentPerson, secondPersonRequired } from "@/lib/controls";
 import { audit, db, withTenant, type Tx } from "@/lib/db";
+import { RESTRICTED_CATEGORIES, canRestricted, checkFile } from "@/lib/documents";
 import { createLic } from "@/lib/lic/core";
+import { deleteStored, saveFile, sha256 } from "@/lib/storage";
 import { LOCKED, NEXT, S, hiddenPersonKeys, safePath, loadLic, toEngineApp, toEnginePerson } from "@/lib/lic/store";
 import { can, getTenantContext, type TenantContext } from "@/lib/tenant";
 import type { Application, Prisma } from "@/generated/prisma/client";
@@ -129,6 +131,15 @@ export async function removePerson(id: string, personId: string) {
 }
 export async function saveChecklist(id: string, _s: State, f: FormData): Promise<State> {
   const ctx = await guard("write");
+  // Files are checked and stored first; nothing is recorded if a later step fails, and stored files are removed again.
+  const uploads: { key: string; filename: string; mime: string; size: number; sha: string; storageKey: string }[] = [];
+  const undo = () => Promise.all(uploads.map((u) => deleteStored(u.storageKey).catch(() => {})));
+  for (const [k, v] of f.entries()) {
+    if (!k.startsWith("file:") || !(v instanceof File) || !v.size) continue;
+    const bytes = new Uint8Array(await v.arrayBuffer()), c = checkFile(v.name, bytes);
+    if ("error" in c) { await undo(); return { error: `${v.name}: ${c.error}` }; }
+    uploads.push({ key: k.slice(5), filename: c.filename, mime: c.mime, size: bytes.length, sha: sha256(bytes), storageKey: await saveFile(ctx.org.id, bytes) });
+  }
   try {
     await withTenant(ctx.org.id, async (tx) => {
       const a = await load(tx, ctx, id);
@@ -141,11 +152,23 @@ export async function saveChecklist(id: string, _s: State, f: FormData): Promise
         if (cert && !/^\d{4}-\d{2}-\d{2}$/.test(cert)) throw new Error("Certified on: use the date format YYYY-MM-DD.");
         st[r.key] = { ...(st[r.key] ?? {}), status, cert_date: cert, note: clean(f.get(`note:${r.key}`)) };
       }
+      for (const u of uploads) {
+        const r = (lic.checklistRows(toEngineApp(a)) as { key: string; who: string; it: { k: string; t: string } }[]).find((x) => x.key === u.key);
+        if (!r) throw new Error("A document line wasn't found. Please reload the page.");
+        const category = /passport|nic/i.test(r.it.k) ? "Passports and IDs" : "Application documents", access = RESTRICTED_CATEGORIES.includes(category) ? "Restricted" : "Normal";
+        if (access === "Restricted" && !canRestricted(ctx)) throw new Error("Your role cannot add restricted documents.");
+        const prev = st[u.key] as { doc_id?: string } | undefined;
+        const doc = (prev?.doc_id && (await tx.document.findFirst({ where: { id: prev.doc_id, organizationId: ctx.org.id } }))) || (await tx.document.create({ data: { organizationId: ctx.org.id, title: `${r.it.t}${r.who ? ` - ${r.who}` : ""}`.slice(0, 300), category, access, linkType: "apps", linkId: a.id, createdById: ctx.user.id } }));
+        const versionNo = (await tx.documentVersion.count({ where: { organizationId: ctx.org.id, documentId: doc.id } })) + 1;
+        await tx.documentVersion.create({ data: { organizationId: ctx.org.id, documentId: doc.id, versionNo, filename: u.filename, size: u.size, mime: u.mime, sha256: u.sha, storageKey: u.storageKey, uploadedById: ctx.user.id, uploadedByName: ctx.user.name } });
+        const cur = st[u.key] as { status?: string } | undefined;
+        st[u.key] = { ...(cur ?? {}), doc_id: doc.id, status: !cur?.status || cur.status === "Not started" ? "Received" : cur.status };
+      }
       d.checklist = st;
       await tx.application.update({ where: { id: a.id }, data: { data: J(d), updatedById: ctx.user.id, ...reviewReset(a, "documents", ctx) } });
-      await log(tx, ctx, "update", a.id, `${a.title}: document checklist saved`);
+      await log(tx, ctx, "update", a.id, `${a.title}: document checklist saved${uploads.length ? `, ${uploads.length} file(s) uploaded` : ""}`);
     });
-  } catch (e) { return { error: (e as Error).message }; }
+  } catch (e) { await undo(); return { error: (e as Error).message }; }
   revalidatePath(`/apply/${id}`);
   return { ok: "Saved." };
 }
@@ -202,4 +225,46 @@ export async function approveApplication(id: string, _s: State): Promise<State> 
   } catch (e) { return { error: (e as Error).message }; }
   revalidatePath(`/apply/${id}`);
   return { ok: "Approved for submission." };
+}
+
+/** Copies what the issued application holds into the records the rest of the app uses. Only what was chosen; nothing is overwritten without that choice. */
+export async function setupRecords(id: string, _s: State, f: FormData): Promise<State> {
+  const ctx = await guard("write");
+  const on = (k: string) => f.get(k) === "on", done: string[] = [];
+  try {
+    const profilePatch = await withTenant(ctx.org.id, async (tx) => {
+      const row = await load(tx, ctx, id);
+      if (row.status !== S.issued) throw new Error("Record the licence as issued first.");
+      const a = toEngineApp(row) as Record<string, any>;
+      const rec = (formKey: string, data: object) => tx.record.create({ data: { organizationId: ctx.org.id, formKey, data: J(data), createdById: ctx.user.id, updatedById: ctx.user.id } });
+      let licId: string | null = null;
+      if (on("licence")) {
+        licId = (await rec("licences", { licence_type: /BSI/.test(a.app_type) ? "BSI designation" : "Authorised Person licence", title: a.app_type === "Authorised Person only" ? "Authorised Person licence" : `${a.app_type} designation`, number: a.licence_number ?? null, issuing_authority: "Colombo Port City Economic Commission", issue_date: a.licence_issue_date ?? null, expiry_date: a.licence_expiry_date ?? null, status: "Active", approved_activities: a.p2?.description ?? null, conditions: a.licence_conditions ?? null, renewal_notice_days: 60, data_source: "From licence application" })).id;
+        done.push("licence record");
+      }
+      if (on("people")) {
+        const have = new Set((await tx.record.findMany({ where: { organizationId: ctx.org.id, formKey: "people", archivedAt: null } })).map((r) => String((r.data as { full_name?: string }).full_name ?? "").toLowerCase()));
+        const ps = (await tx.applicationPerson.findMany({ where: { applicationId: id, organizationId: ctx.org.id } })).map(toEnginePerson) as Record<string, any>[];
+        let n = 0;
+        for (const p of ps.filter((x) => L.hasRole(x, "sh") || L.hasRole(x, "dir"))) {
+          if (have.has(String(p.name ?? "").toLowerCase())) continue; // same name already in the register
+          await rec("people", { full_name: p.name, person_type: p.kind === "Corporate" ? "Corporate" : "Individual", role: L.hasRole(p, "sh") && L.hasRole(p, "dir") ? "Director and shareholder" : L.hasRole(p, "dir") ? "Director" : "Shareholder", nationality: p.nationality ?? null, shareholding_pct: p.shareholding_pct ?? null, appointed_date: a.licence_issue_date ?? null, data_source: "From licence application" });
+          n++;
+        }
+        done.push(`${n} people`);
+      }
+      if (on("office")) {
+        const inPC = !!a.p2?.loc_within, addr = inPC ? a.p2?.loc_within_addr : a.p2?.loc_desig_addr;
+        if (addr) { await rec("offices", { name: inPC ? "Port City office" : "Designated location", address: addr, location: inPC ? "Inside Colombo Port City" : "Outside Colombo Port City", designated_status: inPC ? "Not applicable" : "Designation requested", floor_area: Number(a.p2?.floor_sqm) || 0, area_unit: "sqm", area_sqm: Number(a.p2?.floor_sqm) || 0, status: "Planned", measurement_basis: "Approximate", data_source: "From licence application" }); done.push("office"); }
+      }
+      await log(tx, ctx, "setup", id, `Set up from the application: ${done.join(", ") || "nothing chosen"}`);
+      return { a, licId };
+    });
+    const { a, licId } = profilePatch, org = await db.organization.findUniqueOrThrow({ where: { id: ctx.org.id } }), c = org.profile as Record<string, any>;
+    const p2 = a.p2 ?? {}, patch: Record<string, unknown> = licId ? { main_licence_id: licId } : {};
+    if (on("profile")) { Object.assign(patch, { licence_number: a.licence_number ?? c.licence_number ?? null, register_address: a.p1?.address ?? c.register_address ?? null, designation_type: a.app_type, country_of_incorporation: a.p1?.country ?? c.country_of_incorporation ?? null, registration_no: a.q?.reg_no ?? c.registration_no ?? null, business_sector: (p2.sectors ?? []).join(", ") || c.business_sector || null, signatory_name: p2.signatory ?? c.signatory_name ?? null, signatory_designation: p2.signatory_designation ?? c.signatory_designation ?? null, contact_name: p2.contact ?? c.contact_name ?? null, contact_email: a.p1?.email ?? c.contact_email ?? null, contact_phone: a.p1?.tel ?? c.contact_phone ?? null }); done.push("company profile"); }
+    if (Object.keys(patch).length) await db.organization.update({ where: { id: org.id }, data: { profile: J({ ...c, ...patch }) } });
+  } catch (e) { return { error: (e as Error).message }; }
+  revalidatePath(`/apply/${id}`);
+  return { ok: `Set up: ${done.join(", ") || "nothing chosen"}.` };
 }

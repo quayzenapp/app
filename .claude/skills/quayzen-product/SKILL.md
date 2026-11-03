@@ -54,6 +54,9 @@ A reviewed verbatim port of `reports.js`; the artifact has nine, despite a comme
 ## Business plan and budget
 Plan figures are projections, recorded as submitted. A second person locks a version; figures then can't change (database trigger), only milestone progress and explanations. A revision is a new version. Plans have 10 years, as the Technical Evaluation Form does. The budget is a management tool, not a Commission requirement. `src/lib/budget-engine.ts` is a verbatim port of the calculations in `budget.js`.
 
+## Licence application (`src/lib/lic/`)
+`core.ts` holds the artifact's field specs and rules, `gen.ts` fills the Commission's original files, `store.ts` loads and strips by role. Details are stored under the artifact's own names in `applications.data`. Moves between statuses are limited by `NEXT`. A change after review returns it to Preparing. Approval makes a fixed copy that the forms then use. Forms come from `apps/web/assets/forms/`.
+
 ## Dashboard figures (`pages1.js`)
 - Open requests: status not Submitted or Closed.
 - Obligations not met: status not Met or Not applicable.

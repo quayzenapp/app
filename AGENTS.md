@@ -26,8 +26,9 @@ Read these before changing code. They are plain Markdown, so read them directly 
 ## Definition of done
 Don't report work as done unless these pass, and report the real output if they don't:
 ```bash
-cd apps/web && npx tsc --noEmit && pnpm test:isolation && pnpm test:returns && pnpm test:reports && pnpm test:plan-budget && pnpm build
-./tests/e2e/run.sh    # from the repo root; about 8 minutes; needs the app running and Docker
+cd apps/web && npx tsc --noEmit && pnpm test:isolation && pnpm test:returns && pnpm test:reports && pnpm test:plan-budget && pnpm test:lic && pnpm test:forms && pnpm build
+./tests/e2e/run.sh      # from the repo root; about 8 minutes; needs the app running and Docker
+./tests/e2e/run.sh lic  # the licence checks alone, about 3 minutes
 ```
 Add tests with every feature:
 - Calculations: expected figures worked out by hand, in a `scripts/test-*.ts` file.

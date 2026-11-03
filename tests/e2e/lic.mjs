@@ -1,4 +1,6 @@
 import { chromium } from "playwright";
+import JSZip from "jszip";
+import { createHash } from "node:crypto";
 const S = process.argv[2], BASE = "http://localhost:3000"; let fails = 0;
 const check = (n, ok, extra = "") => { console.log(`${ok ? "PASS" : "FAIL"}  ${n} ${ok ? "" : extra}`); if (!ok) fails++; };
 const browser = await chromium.launch();
@@ -48,9 +50,21 @@ await admin.page.fill('input[name="tef.v.revenue.0"]', "1000"); await admin.page
 check("projections save", (await admin.page.inputValue('input[name="tef.v.revenue.0"]')) === "1000");
 await go(admin.page, base + "?step=checklist"); check("the document checklist lists the Commission's documents", (await text(admin.page)).includes("Application form (Schedule I)") && (await admin.page.locator("tbody tr").count()) > 5);
 await admin.page.selectOption('select[name="st:fee"]', "Ready"); t = await saved(admin.page); check("the checklist saves", t.includes("Saved"), t);
+const up = Buffer.from("%PDF-1.7 E2E certificate"); await go(admin.page, base + "?step=checklist");
+await admin.page.setInputFiles('input[name="file:fee"]', { name: "fee.pdf", mimeType: "application/pdf", buffer: up }); t = await saved(admin.page); check("a file uploads on a checklist line", t.includes("Saved"), t);
+await go(admin.page, base + "?step=checklist"); const docHref = await admin.page.locator('tr:has(select[name="st:fee"]) a:has-text("Open")').getAttribute("href");
+await go(admin.page, docHref); t = await text(admin.page); check("it becomes a stored document linked to the application", t.includes("Licence application: E2E application") && t.includes("fee.pdf"), t.slice(0, 300));
+const vHref = await admin.page.locator('a:has-text("fee.pdf")').getAttribute("href"); let vr = await admin.ctx.request.get(BASE + vHref);
+check("the file downloads intact", createHash("sha256").update(await vr.body()).digest("hex") === createHash("sha256").update(up).digest("hex"));
+vr = await other.ctx.request.get(BASE + vHref); check("another organization can't get the file", vr.status() === 404, String(vr.status()));
+await go(admin.page, base + "?step=checklist"); await admin.page.setInputFiles('input[name="file:fee"]', { name: "evil.pdf", mimeType: "application/pdf", buffer: Buffer.from("MZ program") }); t = await saved(admin.page); check("a disguised file is refused on a checklist line", t.includes("contents don't match"), t);
 await go(admin.page, base); t = await text(admin.page); check("the overview shows progress", t.includes("Steps complete") && t.includes("What's left") && /1 of \d+\s*Supporting/.test(t), t.slice(0, 400));
 await admin.page.screenshot({ path: `${S}/apply-overview.png` });
 const form = (s, k) => s.ctx.request.get(`${BASE}${base}/forms/${k}`);
+const pack = await admin.ctx.request.get(`${BASE}${base}/pack`), pz = await JSZip.loadAsync(await pack.body()), pn = Object.keys(pz.files);
+check("the pack holds the forms and a read-me, marked draft", pack.status() === 200 && pn.includes("READ_ME.txt") && pn.some((n) => n.includes("Schedule_I")) && pn.some((n) => n.includes("Technical_Evaluation")) && pn.filter((n) => n !== "READ_ME.txt").every((n) => n.startsWith("DEMO_DRAFT_")), pn.join());
+const fp = await finance.ctx.request.get(`${BASE}${base}/pack`), fz = await JSZip.loadAsync(await fp.body()), fr0 = await fz.file("READ_ME.txt").async("string");
+check("for a lower role the pack leaves out what it can't prepare, and says so", !Object.keys(fz.files).some((n) => n.includes("Schedule_I")) && fr0.includes("NOT included"), fr0.slice(0, 400));
 let fr = await form(admin, "s1");
 check("Schedule I downloads as a draft before approval", fr.status() === 200 && fr.headers()["content-disposition"].includes("DEMO_DRAFT_") && (await fr.body()).subarray(0, 4).toString() === "%PDF", `${fr.status()} ${fr.headers()["content-disposition"]}`);
 for (const [k, sig] of [["tef", "PK"], ["ap_decl", "PK"], ["ds", "PK"], ["bprofile", "PK"]]) { fr = await form(admin, k); check(`${k} downloads`, fr.status() === 200 && (await fr.body()).subarray(0, 2).toString() === sig, `${fr.status()} ${fr.status() === 200 ? "" : await fr.text()}`); }
@@ -79,6 +93,15 @@ await go(admin.page, base + "?step=applicant"); check("a submitted application i
 await go(admin.page, base); await admin.page.click('summary:has-text("Commission asked for more information")'); await admin.page.fill('details[open] textarea[name="note"]', "E2E please send more"); await admin.page.click('details[open] button:has-text("Save")');
 await admin.page.waitForFunction(() => document.querySelector(".head .badge")?.innerText === "Further information requested", null, { timeout: 30000 });
 await go(admin.page, "/r/requests"); check("a Commission query is logged under Commission Requests", (await text(admin.page)).includes("Further information on the licence application"));
+await admin.page.goto(BASE + base, { waitUntil: "networkidle" }); await admin.page.click('summary:has-text("Mark ready for review")'); await admin.page.click('details[open] button:has-text("Save")'); await admin.page.waitForFunction(() => document.querySelector(".head .badge")?.innerText === "Ready for review", null, { timeout: 30000 });
+await go(reviewer.page, base); reviewer.page.once("dialog", (d) => d.accept()); await reviewer.page.click('button:has-text("Approve for submission")'); await reviewer.page.waitForFunction(() => document.querySelector(".head .badge")?.innerText === "Approved for submission", null, { timeout: 30000 });
+await go(admin.page, base); await admin.page.click('summary:has-text("Record submission")'); await admin.page.click('details[open] button:has-text("Save")'); await admin.page.waitForFunction(() => document.querySelector(".head .badge")?.innerText === "Submitted for preliminary review", null, { timeout: 30000 });
+await go(admin.page, base); await admin.page.click('summary:has-text("Record Approval in Principle")'); await admin.page.click('details[open] button:has-text("Save")'); await admin.page.waitForFunction(() => document.querySelector(".head .badge")?.innerText === "Approval in Principle received", null, { timeout: 30000 });
+await go(admin.page, base); await admin.page.click('summary:has-text("Record licence issued")'); await admin.page.fill('details[open] input[name="licence_number"]', "E2E-LIC-1"); await admin.page.click('details[open] button:has-text("Save")'); await admin.page.waitForFunction(() => document.querySelector(".head .badge")?.innerText === "Licence issued", null, { timeout: 30000 });
+await go(admin.page, base); await admin.page.click('summary:has-text("Set up compliance records")'); await admin.page.click('details[open] button:has-text("Set up")'); await admin.page.waitForSelector("details[open] .banner", { timeout: 30000 });
+t = await admin.page.locator("details[open] .banner").first().innerText(); check("an issued licence sets up the records chosen", t.includes("licence record") && t.includes("company profile"), t);
+await go(admin.page, "/r/licences"); check("... including the licence record", (await text(admin.page)).includes("E2E-LIC-1"));
+await go(admin.page, "/r/people"); check("... and the people, without identity details", (await text(admin.page)).includes("E2E Person Two"));
 await go(other.page, base); check("another organization can't open it", (await text(other.page)).includes("404") || (await other.page.title()).includes("404"));
 await go(other.page, "/apply"); t = await text(other.page); check("each organization sees its own applications", t.includes("Harbourline Analytics application") && !t.includes("E2E application"));
 await go(other.page, "/dashboard"); check("the applicant's dashboard shows the application", (await text(other.page)).includes("Open the application"));
